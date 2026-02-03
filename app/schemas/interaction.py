@@ -48,22 +48,6 @@ class SearchHistory(SearchBase):
     class Config:
         from_attributes = True
 
-# Support Ticket Schemas (Table 68)
-class SupportTicketBase(BaseModel):
-    user_id: int
-    category: str
-    message: str
-    attachments: str | None = None
-
-class SupportTicketCreate(SupportTicketBase):
-    pass
-
-class SupportTicket(SupportTicketBase):
-    id: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 # About Us Schemas (Table 69)
 class AboutUsBase(BaseModel):

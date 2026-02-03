@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Float, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from pgvector.sqlalchemy import Vector
 from app.db.database import Base
 
 # Association table for User-Category subscriptions
@@ -60,7 +61,9 @@ class LegalContent(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True, nullable=False)
     description = Column(Text, nullable=False)
+    country = Column(String, index=True, nullable=False) # الدولة التي يتبع لها القانون
     category_id = Column(Integer, ForeignKey("categories.id"))
+    embedding = Column(Vector(1536)) # Vector embedding for semantic search
     
     # Accessibility fields (Table 66)
     aria_label = Column(String, nullable=True)
@@ -80,6 +83,7 @@ class ComparativeLaw(Base):
     saudi_law = Column(Text, nullable=False)
     foreign_law = Column(Text, nullable=False)
     key_differences = Column(Text, nullable=True)
+    embedding = Column(Vector(1536)) # Vector embedding for semantic search
     
     # Relationships
     content = relationship("LegalContent", back_populates="comparisons")
