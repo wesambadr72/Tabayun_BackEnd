@@ -1,6 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Float, Table
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, func, Index, Table, Float
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
 from app.db.database import Base
 
@@ -47,9 +46,13 @@ class UserSettings(Base):
     user = relationship("User", back_populates="settings")
 
 class Category(Base):
+    """الأقسام القانونية (المرور، التجارة، الصحة...)"""
     __tablename__ = "categories"
+    
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String(100), unique=True, nullable=False, index=True)  # "المرور"
+    description = Column(Text, nullable=True)
+    icon = Column(String(255), nullable=True)  # path للأيقونة
     
     # Relationships
     contents = relationship("LegalContent", back_populates="category")
@@ -57,61 +60,93 @@ class Category(Base):
     subscribers = relationship("User", secondary=subscriptions, back_populates="subscribed_categories")
 
 class LegalContent(Base):
+    """القوانين الفردية (نص واحد من دولة واحدة)"""
     __tablename__ = "legal_contents"
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True, nullable=False)
-    description = Column(Text, nullable=False)
-    country = Column(String, index=True, nullable=False) # الدولة التي يتبع لها القانون
-    category_id = Column(Integer, ForeignKey("categories.id"))
-    embedding = Column(Vector(1536)) # Vector embedding for semantic search
     
-    # Accessibility fields (Table 66)
-    aria_label = Column(String, nullable=True)
-    alt_text = Column(String, nullable=True)
-    ui_role = Column(String, nullable=True)
-    is_live = Column(Integer, default=0) # 0 or 1
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Basic Info
+    title = Column(String(300), index=True, nullable=False)  # "مخالفة حزام الأمان"
+    country = Column(String(50), index=True, nullable=False)  # "السعودية"
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
+    
+    # Legal Texts
+    original_text = Column(Text, nullable=False)      # النص القانوني الأصلي من الموقع
+    simplified_text = Column(Text, nullable=False)    # النص المبسط بواسطة AI
+    
+    # Metadata
+    source_url = Column(String(500), nullable=True)   # رابط المصدر (WorldLII)
+        
+    # Vector Search
+    embedding = Column(Vector(384), nullable=True)    # 384 إذا استخدمت sentence-transformers
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Accessibility
+    aria_label = Column(String(255), nullable=True)
+    alt_text = Column(String(255), nullable=True)
+    ui_role = Column(String(50), nullable=True)
+    is_live = Column(Integer, default=0)
     
     # Relationships
     category = relationship("Category", back_populates="contents")
-    comparisons = relationship("ComparativeLaw", back_populates="content")
+    saudi_comparisons = relationship(
+        "ComparativeLaw",
+        foreign_keys="ComparativeLaw.saudi_law_id",
+        back_populates="saudi_content"
+    )
+    foreign_comparisons = relationship(
+        "ComparativeLaw",
+        foreign_keys="ComparativeLaw.foreign_law_id",
+        back_populates="foreign_content"
+    )
     bookmarks = relationship("Bookmark", back_populates="content")
 
-class ComparativeLaw(Base):
-    __tablename__ = "comparative_laws"
-    id = Column(Integer, primary_key=True, index=True)
-    content_id = Column(Integer, ForeignKey("legal_contents.id"))
-    saudi_law = Column(Text, nullable=False)
-    foreign_law = Column(Text, nullable=False)
-    key_differences = Column(Text, nullable=True)
-    embedding = Column(Vector(1536)) # Vector embedding for semantic search
-    
-    # Relationships
-    content = relationship("LegalContent", back_populates="comparisons")
 
-class Notification(Base):
-    __tablename__ = "notifications"
+class ComparativeLaw(Base):
+    """المقارنات بين السعودية ودول أخرى"""
+    __tablename__ = "comparative_laws"
+    
     id = Column(Integer, primary_key=True, index=True)
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
-    sender_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    title = Column(String, nullable=False)
-    message = Column(Text, nullable=False)
-    notification_type = Column(String, nullable=False) # alert, update, info
-    priority = Column(String, default="Normal")
-    status = Column(String, default="Unread")
-    scheduled_time = Column(DateTime, nullable=True)
+    
+    # References (بدلاً من تكرار النصوص)
+    saudi_law_id = Column(Integer, ForeignKey("legal_contents.id"), nullable=False)
+    foreign_law_id = Column(Integer, ForeignKey("legal_contents.id"), nullable=False)
+    
+    # Summary (الخلاصة التوضيحية - جملة واحدة)
+    summary = Column(Text, nullable=False)  # "الكحول محرم في السعودية ومسموح في ألمانيا بشرط..."
+    
+    # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
-    category = relationship("Category", back_populates="notifications")
-    sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_notifications")
-    recipient = relationship("User", foreign_keys=[recipient_id], back_populates="received_notifications")
+    saudi_content = relationship(
+        "LegalContent",
+        foreign_keys=[saudi_law_id],
+        back_populates="saudi_comparisons"
+    )
+    foreign_content = relationship(
+        "LegalContent",
+        foreign_keys=[foreign_law_id],
+        back_populates="foreign_comparisons"
+    )
+    
+    # Unique constraint: نفس المقارنة لا تتكرر
+    __table_args__ = (
+        Index('idx_comparison_pair', 'saudi_law_id', 'foreign_law_id', unique=True),
+    )
+
 
 class Bookmark(Base):
+    """علامات مرجعية للمستخدمين"""
     __tablename__ = "bookmarks"
+    
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    content_id = Column(Integer, ForeignKey("legal_contents.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    content_id = Column(Integer, ForeignKey("legal_contents.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
