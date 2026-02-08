@@ -1,74 +1,59 @@
-import google.generativeai as genai
-import settings
+from google import genai
+from app.core.config import settings
+import asyncio
 
-class geminiService:
-    """نقطة التواصل مع Gemini API
-    """
-
-    def __init__(self):
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        self.model = genai.GenerativeModel(settings.GEMINI_MODEL_NAME)
-
-        self.generation_config={
-            "temperature" : 0.4,
-            "top_p" : 0.95,
-            "top_k" : 40,
-            "max_output_tokens" : 1024
-        }
-        self.safety_settings=[
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
-        ]
+class GeminiService:
+    """الخدمة المركزية للتواصل مع Gemini API"""
+    
+    def __init__(self, api_key: str = None, model_name: str = None):
+        self.api_key = api_key or settings.GEMINI_API_KEY
+        self.model_name = model_name or settings.GEMINI_MODEL_NAME 
+        self.client = genai.Client(api_key=self.api_key)
         
-    def generate_answer(self, prompt: str) ->str :
-        """ توليد إجابة من Gemini API بناءً على السؤال المقدم
+        # إعدادات التوليد الافتراضية
+        self.config = {
+            "temperature": 0.4,
+            "top_p": 0.95,
+            "top_k": 20,
+            "max_output_tokens": 512,
+        }
 
-        Args:
-            prompt (str): السؤال الذي سيتم طرح
-
-        Returns:
-            str: الإجابة التي تم توليدها من Gemini API
-        """
+    async def generate_answer(self, prompt: str) -> str:
+        """توليد إجابة مباشرة من الموديل"""
         try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config=self.generation_config,
-                safety_settings=self.safety_settings
+            response = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=self.config
             )
             return response.text.strip() if response.text else None
         except Exception as e:
-            print(f"Error generating answer: {e}")  
-            return None    
+            print(f"Error in GeminiService.generate_answer: {e}")
+            return None
 
-    def generate_with_context(self, question: str, context: str) -> str:
-        """ توليد إجابة من Gemini API بناءً على السؤال المقدم و السياق مع RAG 
+    async def generate_with_context(self, question: str, context: str, language: str = "ar") -> str:
+        """توليد إجابة بناءً على سياق (RAG)"""
+        target_lang = "Arabic" if language == "ar" else "English"
+        
+        prompt = f"""
+        You are a professional legal assistant. Answer the user's question based ONLY on the provided legal context.
 
-        Args:
-            question (str): السؤال الذي سيتم طرح
-            context (str): السياق الذي سيتم استخدامه في توليد الإجابة
+        Legal Context:
+        \"\"\"{context}\"\"\"
 
-        Returns:
-            str: الإجابة التي تم توليدها من Gemini API
+        User Question:
+        \"\"\"{question}\"\"\"
+
+        Instructions:
+        1. Answer accurately and concisely using the provided context.
+        2. If the answer is not in the context, state that you don't have enough information.
+        3. Maintain a professional tone.
+        4. If the question is not legal, politely decline.
+
+        Respond ONLY in {target_lang}.
         """
         try:
-            prompt = f"""أنت مساعد قانوني متخصص. أجب بناءً على النصوص القانونية المُقدمة فقط.
-                **النصوص القانونية:**
-                {context}
-
-                **سؤال المستخدم:**
-                {question}
-
-                **تعليمات:**
-                - أجب بناءً على النصوص فقط
-                - استخدم لغة واضحة وبسيطة
-                - اذكر الدولة عند الإجابة
-                - لا تختلق معلومات
-
-                الإجابة:"""
-            response = self.generate_answer(prompt)
-            return response if response else None
+            return await self.generate_answer(prompt)
         except Exception as e:
-            print(f"Error generating answer: {e}")  
-            return None    
+            print(f"Error in GeminiService.generate_with_context: {e}")
+            return None 

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from app.db.vector_search import VectorSearchService
-from app.services.gemini_service import geminiService
+from app.services.vector_search import VectorSearchService
+from app.services.gemini_service import GeminiService
 
 
 class RAGPipeline:
@@ -9,13 +9,14 @@ class RAGPipeline:
     def __init__(self, db: Session):
         self.db = db
         self.vector_search = VectorSearchService(db)
-        self.gemini = geminiService()
+        self.gemini = GeminiService()
 
-    def answer_question(
+    async def answer_question(
         self,
         question: str,
         country_filter: str | None = None,
         section_filter: str | None = None,
+        language: str = "ar",
     ) -> dict:
         """الإجابة على سؤال باستخدام RAG"""
 
@@ -28,17 +29,17 @@ class RAGPipeline:
 
         if not similar_laws:
             return {
-                "answer": "عذراً، لم أجد معلومات قانونية ذات صلة بسؤالك.",
+                "answer": "عذراً، لم أجد معلومات قانونية ذات صلة بسؤالك." if language == "ar" else "Sorry, I couldn't find any relevant legal information.",
                 "sources": [],
                 "context_used": 0,
             }
-
+        
         context = self._build_context(similar_laws)
-        answer = self.gemini.generate_with_context(question, context)
+        answer = await self.gemini.generate_with_context(question, context, language=language)
         sources = self._extract_sources(similar_laws)
 
         return {
-            "answer": answer or "عذراً، حدث خطأ في معالجة السؤال.",
+            "answer": answer or ("عذراً، حدث خطأ في معالجة السؤال." if language == "ar" else "Sorry, an error occurred while processing your question."),
             "sources": sources,
             "context_used": len(similar_laws),
         }
