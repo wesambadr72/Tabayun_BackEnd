@@ -1,12 +1,15 @@
 from dataclasses import dataclass
 from typing import Optional
+import scrapy
 
 
 @dataclass
-class LegalContentItem:
-    title: str
-    country: str
-    category: Optional[str]
-    original_text: str
-    source_url: Optional[str] = None
+class LegalItem(scrapy.Item):
+    country = scrapy.Field()
+    section = scrapy.Field()
+    title = scrapy.Field()
+    article_number = scrapy.Field()
+    original_description = scrapy.Field()
+    source_url = scrapy.Field()
+    language = scrapy.Field()
 
