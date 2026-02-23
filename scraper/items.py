@@ -1,15 +1,14 @@
-from dataclasses import dataclass
-from typing import Optional
 import scrapy
 
-
-@dataclass
-class LegalItem(scrapy.Item):
-    country = scrapy.Field()
-    section = scrapy.Field()
-    title = scrapy.Field()
-    article_number = scrapy.Field()
-    original_description = scrapy.Field()
-    source_url = scrapy.Field()
-    language = scrapy.Field()
-
+class LawItem(scrapy.Item):
+    """
+    نموذج البيانات المستخرجة من المواقع.
+    يتم تمريره لاحقاً للـ Pipeline للحفظ في قاعدة البيانات.
+    """
+    title = scrapy.Field()          
+    original_text = scrapy.Field()  
+    country = scrapy.Field()        
+    category = scrapy.Field()
+    article_number = scrapy.Field()       
+    source_url = scrapy.Field()     
+    date_scraped = scrapy.Field()   

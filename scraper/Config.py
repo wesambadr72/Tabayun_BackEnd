@@ -29,13 +29,6 @@ SOURCES = {
         # المرور
         "traffic": [
             {
-                "name": "sa_boe_traffic_index",
-                "type": "html",
-                "base_url": "https://laws.boe.gov.sa/BoeLaws/Laws/Folders/2",
-                "official": True,
-                "notes": "مجلد أنظمة المرور في بوابة الأنظمة السعودية.[web:108]",
-            },
-            {
                 "name": "sa_boe_traffic_law",
                 "type": "html",
                 "base_url": "https://laws.boe.gov.sa/BoeLaws/Laws/LawDetails/85364e57-c01e-41ba-8def-a9a700f183e9/1",
@@ -81,16 +74,6 @@ SOURCES = {
                 "base_url": "https://momah.gov.sa/en/node/15200",
                 "official": True,
                 "notes": "مقال عن جدول مخالفات أنظمة الغذاء المحدث من وزارة الشؤون البلدية والإسكان بالتعاون مع هيئة الغذاء والدواء.[web:134]",
-            },
-        ],
-        # القانون الجنائي اليومي
-        "everyday_criminal": [
-            {
-                "name": "sa_public_decency_criminal_behaviour",
-                "type": "html",
-                "base_url": "https://www.loc.gov/item/global-legal-monitor/2019-11-04/saudi-arabia-legislation-enacted-on-regulating-public-decency/",
-                "official": False,
-                "notes": "يُستخدم مؤقتًا لشرح سلوكيات مجرّمة في الأماكن العامة؛ لاحقاً نستبدله بنصوص من نظام الجرائم التعزيرية.",
             },
         ],
     },
@@ -141,16 +124,7 @@ SOURCES = {
                 "official": True,
                 "notes": "بوابة للوصول إلى Food Safety Act 1990 ولوائح الغذاء.",
             },
-        ],
-        "everyday_criminal": [
-            {
-                "name": "uk_criminal_law_portal",
-                "type": "html",
-                "base_url": "https://www.legislation.gov.uk/",
-                "official": True,
-                "notes": "لنصوص Crimes مثل Theft Act و Offences Against the Person؛ نحدد نصوصاً لاحقاً.",
-            },
-        ],
+        ]
     },
     #المانيا
    "de": {
@@ -198,16 +172,7 @@ SOURCES = {
                 "official": True,
                 "notes": "منها نستخرج القوانين المتعلقة بسلامة الغذاء.",
             },
-        ],
-        "everyday_criminal": [
-            {
-                "name": "de_criminal_code_portal",
-                "type": "html",
-                "base_url": "https://www.gesetze-im-internet.de/",
-                "official": True,
-                "notes": "مدخل لقانون Strafgesetzbuch (StGB) لجرائم مثل السرقة والاعتداء.",
-            },
-        ],
+        ]
     },
 
     # الهند
@@ -256,16 +221,7 @@ SOURCES = {
                 "official": True,
                 "notes": "نستخدمه للوصول لقانون Food Safety and Standards Act.",
             },
-        ],
-        "everyday_criminal": [
-            {
-                "name": "in_criminal_code_portal",
-                "type": "html",
-                "base_url": "https://www.indiacode.nic.in/",
-                "official": True,
-                "notes": "مدخل لقوانين الجرائم اليومية (السرقة، الاعتداء…) مثل Bharatiya Nyaya Sanhita (البديل الجديد للـ IPC).",
-            },
-        ],
+        ]
     },
 
 
@@ -314,15 +270,6 @@ SOURCES = {
                 "base_url": "https://punjablaws.gov.pk/",
                 "official": True,
                 "notes": "لاحقاً نختار لوائح سلامة الأغذية.",
-            },
-        ],
-        "everyday_criminal": [
-            {
-                "name": "pk_criminal_law_portal",
-                "type": "html",
-                "base_url": "https://punjablaws.gov.pk/",
-                "official": True,
-                "notes": "مدخل لقوانين الجرائم اليومية مثل Pakistan Penal Code.",
             },
         ],
     },
@@ -374,86 +321,68 @@ SOURCES = {
                 "official": True,
                 "notes": "مدخل لقوانين سلامة الغذاء.",
             },
-        ],
-        "everyday_criminal": [
-            {
-                "name": "id_criminal_code_portal",
-                "type": "html",
-                "base_url": "https://peraturan.go.id/eng",
-                "official": True,
-                "notes": "مدخل لقانون العقوبات والقوانين ذات الصلة بالجرائم اليومية.",
-            },
-        ],
+        ]
     },
 
-    # الصين (سنحتاج اختيار قانون فعلي لاحقاً)
-    "id": {
+    # الصين
+    "cn": {
         "traffic": [
             {
-                "name": "id_road_traffic_law_pdf",
-                "type": "pdf",
-                "base_url": "https://dishub.malangkota.go.id/wp-content/uploads/sites/16/2016/05/Undang-Undang-No.-22-tahun-2009-Tentang-Lalulintas.pdf",
+                "name": "cn_road_traffic_safety_law",
+                "type": "html",
+                "base_url": "http://english.www.gov.cn/archive/laws_regulations/2014/08/23/content_281474983042477.htm",
                 "official": True,
-                "notes": "Law No. 22 of 2009 on Road Traffic and Transportation.[web:115][web:119]",
+                "notes": "Road Traffic Safety Law of the PRC (Official English Version).",
             },
         ],
         "visa_residency": [
             {
-                "name": "id_immigration_law_pdf",
-                "type": "pdf",
-                "base_url": "https://www.peraturan.go.id/files2/uu-no-6-tahun-2011_terjemah.pdf",
+                "name": "cn_exit_entry_admin_law",
+                "type": "html",
+                "base_url": "http://english.www.gov.cn/archive/laws_regulations/2014/08/23/content_281474983042515.htm",
                 "official": True,
-                "notes": "Law No. 6 of 2011 on Immigration.[web:130]",
+                "notes": "Exit and Entry Administration Law of the PRC.",
             },
         ],
         "public_decency": [
             {
-                "name": "id_public_order_placeholder",
+                "name": "cn_public_order_placeholder",
                 "type": "html",
-                "base_url": "https://peraturan.go.id/eng",
+                "base_url": "http://english.www.gov.cn/archive/laws_regulations/",
                 "official": True,
-                "notes": "مدخل للبحث عن قوانين السلوك في الأماكن العامة.",
+                "notes": "مدخل لقوانين العقوبات الإدارية والأمن العام (Public Security Administration Punishments Law).",
             },
         ],
         "labor": [
             {
-                "name": "id_labour_law_portal",
+                "name": "cn_labour_law_portal",
                 "type": "html",
-                "base_url": "https://peraturan.go.id/eng",
+                "base_url": "http://english.www.gov.cn/archive/laws_regulations/",
                 "official": True,
-                "notes": "نستخرج منه قوانين العمل الإندونيسية.",
+                "notes": "Labour Law of the PRC.",
             },
         ],
         "food": [
             {
-                "name": "id_food_law_portal",
+                "name": "cn_food_safety_law",
                 "type": "html",
-                "base_url": "https://peraturan.go.id/eng",
+                "base_url": "http://english.www.gov.cn/archive/laws_regulations/2014/08/23/content_281474983042473.htm",
                 "official": True,
-                "notes": "مدخل لقوانين سلامة الغذاء.",
+                "notes": "Food Safety Law of the PRC.",
             },
-        ],
-        "everyday_criminal": [
-            {
-                "name": "id_criminal_code_portal",
-                "type": "html",
-                "base_url": "https://peraturan.go.id/eng",
-                "official": True,
-                "notes": "مدخل لقانون العقوبات والقوانين ذات الصلة بالجرائم اليومية.",
-            },
-        ],
+        ]
     }
 }
 
 # ─── WorldLII كمصدر احتياطي عام ───
 WORLDLII_FALLBACK = {
-    "sa": "https://www.worldlii.org/sa/legis/",
-    "uk": "https://www.worldlii.org/uk/legis/",
-    "de": "https://www.worldlii.org/de/legis/",
-    "in": "https://www.worldlii.org/in/legis/",
-    "pk": "https://www.worldlii.org/pk/legis/",
-    "id": "https://www.worldlii.org/id/legis/",
-    "cn": "https://www.worldlii.org/cn/legis/",
+    "sa": "https://www.worldlii.org/sa",
+    "uk": "https://www.worldlii.org/uk",
+    "de": "https://www.worldlii.org/de",
+    "in": "https://www.worldlii.org/in",
+    "pk": "https://www.worldlii.org/pk",
+    "id": "https://www.worldlii.org/id",
+    "cn": "https://www.worldlii.org/cn",
 }
 
 
@@ -469,9 +398,9 @@ def get_source(country: str, section: str, include_fallback: bool = True) -> lis
     if include_fallback and country in WORLDLII_FALLBACK:
          sources = sources + [
             {
-                "name": f"{country_code}_worldlii_fallback",
+                "name": f"{country}_worldlii_fallback",
                 "type": "html",
-                "base_url": WORLDLII_FALLBACK[country_code],
+                "base_url": WORLDLII_FALLBACK[country],
                 "official": True,
                 "priority": 99,  # دائماً آخر خيار
                 "notes": "WorldLII fallback – يُستخدم فقط إذا فشلت المصادر الرسمية.",

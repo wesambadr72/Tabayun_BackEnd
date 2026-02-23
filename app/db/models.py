@@ -65,6 +65,8 @@ class LegalContent(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     
+    article_number = Column(String(100), index=True, nullable=True)  # رقم المقالة (مثل "1234/2023")
+    
     # Basic Info
     title = Column(String(300), index=True, nullable=False)  # "مخالفة حزام الأمان"
     country = Column(String(50), index=True, nullable=False)  # "السعودية"
