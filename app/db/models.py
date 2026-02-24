@@ -214,3 +214,21 @@ class AboutUs(Base):
     body = Column(Text, nullable=False)
     image_url = Column(String, nullable=True)
     last_updated = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    is_read = Column(Integer, default=0) # 0: unread, 1: read
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_notifications")
+    recipient = relationship("User", foreign_keys=[recipient_id], back_populates="received_notifications")
+    category = relationship("Category", back_populates="notifications")
