@@ -40,8 +40,8 @@ SOURCES = {
         "visa_residency": [
             {
                 "name": "sa_privileged_residency_law_pdf",
-                "type": "pdf",
-                "base_url": "https://laws.boe.gov.sa/Files/Download/?attId=484cc8af-575e-45e5-ab8f-adbb010e982c",
+                "type": "html",
+                "base_url": "https://laws.boe.gov.sa/BoeLaws/Laws/LawDetails/5e9762df-2b15-4e66-8cdc-aa5200f62042/1",
                 "official": True,
                 "notes": "Privileged Residency Permit Law (نموذج واضح لقانون إقامة للأجانب)..[web:128]",
             },
@@ -51,19 +51,19 @@ SOURCES = {
             {
                 "name": "sa_public_decency_resolution_info",
                 "type": "html",
-                "base_url": "https://www.loc.gov/item/global-legal-monitor/2019-11-04/saudi-arabia-legislation-enacted-on-regulating-public-decency/",
-                "official": False,
-                "notes": "مقال مكتبة الكونغرس يشرح قرار الذوق العام رقم 444؛ نستخدمه كبوابة لتحديد النص الرسمي لاحقاً.[web:132]",
+                "base_url": "https://laws.boe.gov.sa/BoeLaws/Laws/LawDetails/3b96a591-47c8-4469-9abb-aa4700f1aa52/1",
+                "official": True,
+                "notes": "نظام لائحة الذوق العام (النص العربي)..[web:129]",
             },
         ],
         # العمل والعقود
         "labor": [
             {
                 "name": "sa_labour_law_pdf",
-                "type": "pdf",
-                "base_url": "https://beoe.gov.pk/files/legal-framework/labor-laws/Saudi-Labour-Law.pdf",
-                "official": False,
-                "notes": "نسخة مترجمة من نظام العمل السعودي (من موقع باكستاني رسمي لوزارة شؤون المغتربين). مفيدة للمقارنات.[web:133]",
+                "type": "html",
+                "base_url": "https://laws.boe.gov.sa/BoeLaws/Laws/LawDetails/08381293-6388-48e2-8ad2-a9a700f2aa94/1",
+                "official": True,
+                "notes": "نظام العمل السعودي (النص العربي).",
             },
         ],
         # المأكولات / الغذاء
@@ -71,9 +71,9 @@ SOURCES = {
             {
                 "name": "sa_food_violations_table",
                 "type": "html",
-                "base_url": "https://momah.gov.sa/en/node/15200",
+                "base_url": "https://laws.boe.gov.sa/BoeLaws/Laws/LawDetails/9167ec51-a011-4a22-b6c3-a9a700f290f8/1",
                 "official": True,
-                "notes": "مقال عن جدول مخالفات أنظمة الغذاء المحدث من وزارة الشؤون البلدية والإسكان بالتعاون مع هيئة الغذاء والدواء.[web:134]",
+                "notes": "نظام الغذاء السعودي (النص العربي)..[web:130]",
             },
         ],
     },
@@ -82,45 +82,45 @@ SOURCES = {
      "uk": {
         "traffic": [
             {
-                "name": "uk_road_traffic_act_1960",
-                "type": "html",
-                "base_url": "https://www.legislation.gov.uk/ukpga/Eliz2/8-9/16/enacted",
+                "name": "uk_road_traffic_act_1988",
+                "type": "xml",
+                "base_url": "htthttps://www.legislation.gov.uk/ukpga/1988/52/data.xml",
                 "official": True,
-                "notes": "Road Traffic Act 1960 – قانون مرور تاريخي يعطي صورة عن تنظيم المرور.[web:117]",
+                "notes": "Road Traffic Act 1988 – قانون مرور تاريخي يعطي صورة عن تنظيم المرور.[web:117]",
             },
         ],
         "visa_residency": [
             {
                 "name": "uk_immigration_acts_pdf",
-                "type": "pdf",
-                "base_url": "https://assets.publishing.service.gov.uk/media/5a82b4bced915d74e3403267/immigrationacts.pdf",
+                "type": "xml",
+                "base_url": "https://www.legislation.gov.uk/ukpga/1971/77/data.xml",
                 "official": True,
-                "notes": "وثيقة تجمع أهم Immigration Acts في المملكة المتحدة.[web:129]",
+                "notes": "Immigration Acts 1971 – مجموعة من القوانين التي تحدد إقامة الأجانب في المملكة المتحدة.[web:129]",
             },
         ],
         "public_decency": [
             {
                 "name": "uk_public_order_context",
-                "type": "html",
-                "base_url": "https://www.legislation.gov.uk/",
+                "type": "xml",
+                "base_url": "https://www.legislation.gov.uk/ukpga/1986/64/data.xml",
                 "official": True,
-                "notes": "بوابة عامة؛ لاحقاً نختار منها قوانين مثل Public Order Act و indecency/offences in public.",
+                "notes": "Public Order Act 1986 – قانون إدارة الذوق العام في المملكة المتحدة.[web:129]",
             },
         ],
         "labor": [
             {
                 "name": "uk_labour_law_portal",
-                "type": "html",
-                "base_url": "https://www.legislation.gov.uk/",
+                "type": "xml",
+                "base_url": "https://www.legislation.gov.uk/ukpga/1996/18/data.xml",
                 "official": True,
-                "notes": "نستخدمه للوصول إلى قوانين مثل Employment Rights Act 1996 لاحقاً.",
+                "notes": "Labor Law Portal 1996 – بوابة للوصول إلى قوانين مثل Employment Rights Act 1996.",
             },
         ],
         "food": [
             {
                 "name": "uk_food_safety_portal",
-                "type": "html",
-                "base_url": "https://www.legislation.gov.uk/",
+                "type": "xml",
+                "base_url": "https://www.legislation.gov.uk/ukpga/1990/16/data.xml",
                 "official": True,
                 "notes": "بوابة للوصول إلى Food Safety Act 1990 ولوائح الغذاء.",
             },
@@ -131,49 +131,53 @@ SOURCES = {
         "traffic": [
             {
                 "name": "de_traffic_portal",
-                "type": "html",
-                "base_url": "https://www.gesetze-im-internet.de/",
+                "type": "xml",
+                "base_url": "https://www.gesetze-im-internet.de/stvg/xml.zip",
                 "official": True,
-                "notes": "مدخل لقوانين مثل Straßenverkehrs-Ordnung (StVO) لقواعد المرور.[web:92]",
+                "notes": "مدخل لقوانين مثل Straßenverkehrs-Ordnung (StVg) لقواعد المرور.",
             },
         ],
         "visa_residency": [
             {
                 "name": "de_residence_act_info",
-                "type": "html",
-                "base_url": "https://germanystudy.net/german-residence-act-aufenthaltsgesetz-aufenthg/",
+                "type": "xml",
+                "base_url": "https://www.gesetze-im-internet.de/aufenthg_2004/xml.zip",
                 "official": False,
-                "notes": "مقال يعرض Residence Act (AufenthG) مع نص القانون؛ نستخدمه كنقطة دخول.[web:127][web:136]",
+                "notes": "مدخل لقوانين مثل AufenthG 2004 لقواعد الإقامة.",
             },
         ],
         "public_decency": [
             {
                 "name": "de_public_order_placeholder",
-                "type": "html",
-                "base_url": "https://www.gesetze-im-internet.de/",
+                "type": "xml",
+                "base_url": "https://www.gesetze-im-internet.de/stgb/xml.zip",
                 "official": True,
-                "notes": "لاحقاً نختار نصوصاً من القوانين الجنائية أو التنظيمية المتعلقة بالسلوك في الأماكن العامة.",
+                "notes": "مدخل لقوانين مثل Öffentliches Ordnungsgesetz (StGB) لقواعد السلوك العام.",
             },
         ],
         "labor": [
             {
                 "name": "de_labour_law_portal",
-                "type": "html",
-                "base_url": "https://www.gesetze-im-internet.de/",
+                "type": "xml",
+                "base_url": "https://www.gesetze-im-internet.de/bgb/xml.zip",
                 "official": True,
-                "notes": "بوابة للوصول إلى قوانين العمل مثل Arbeitszeitgesetz وغيره.",
+                "notes": "مدخل لقوانين العمل مثل Arbeitszeitgesetz وغيره.",
             },
         ],
         "food": [
             {
                 "name": "de_food_regulation_portal",
-                "type": "html",
-                "base_url": "https://www.gesetze-im-internet.de/",
+                "type": "xml",
+                "base_url": "https://www.gesetze-im-internet.de/lfgb/xml.zip",
                 "official": True,
-                "notes": "منها نستخرج القوانين المتعلقة بسلامة الغذاء.",
-            },
-        ]
+                "notes": "مدخل لقوانين مثل Landwirtschaftliche Gesetzgebung (LFGB) لقواعد الغذاء.",
+            }
+        ],
     },
+
+"""
+الدول اللتي اسفل لم يتم تثبيت و تاكيد مصادرها
+"""
 
     # الهند
      "in": {
