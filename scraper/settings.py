@@ -22,9 +22,9 @@ DOWNLOAD_DELAY = 2
 COOKIES_ENABLED = False
 
 # Configure item pipelines
-# ITEM_PIPELINES = {
-#    "scraper.pipelines.DatabasePipeline": 300,
-# }
+ITEM_PIPELINES = {
+   "scraper.pipelines.DatabasePipeline": 300,
+}
 
 # Set settings whose default value is deprecated to a future-proof value
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"

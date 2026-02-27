@@ -67,6 +67,7 @@ instance/
 
 # Scrapy stuff:
 .scrapy
+/laws_Singing_*.json
 
 # Sphinx documentation
 docs/_build/

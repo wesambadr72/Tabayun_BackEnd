@@ -1,1 +1,1 @@
-from .worldlii_spider import LawSpider
+from .law_spider import LawSpider

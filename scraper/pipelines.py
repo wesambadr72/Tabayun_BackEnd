@@ -45,7 +45,7 @@ class DatabasePipeline:
                     title=item.get("title"),
                     country=item.get("country"),
                     category_id=category.id,
-                    article_number_text = item.get("article_number", ""),    
+                    article_number = item.get("article_number", ""),    
                     original_text=item.get("original_text"),
                     simplified_text="", # سيتم ملؤه لاحقاً بواسطة AI Simplifier
                     source_url=item.get("source_url"),

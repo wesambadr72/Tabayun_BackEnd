@@ -39,11 +39,11 @@ SOURCES = {
         # الإقامة والتأشيرات
         "visa_residency": [
             {
-                "name": "sa_privileged_residency_law_pdf",
+                "name": "sa_privileged_residency_law",
                 "type": "html",
                 "base_url": "https://laws.boe.gov.sa/BoeLaws/Laws/LawDetails/5e9762df-2b15-4e66-8cdc-aa5200f62042/1",
                 "official": True,
-                "notes": "Privileged Residency Permit Law (نموذج واضح لقانون إقامة للأجانب)..[web:128]",
+                "notes": "Privileged Residency Permit Law (نظام الإقامة المميزة).",
             },
         ],
         # الآداب العامة / الذوق العام
@@ -176,7 +176,7 @@ SOURCES = {
     },
 
 """
-الدول اللتي اسفل لم يتم تثبيت و تاكيد مصادرها
+الدول اللتي اسفل لم يتم تثبيت و تاكيد مصادرها (الا الصين)
 """
 
     # الهند
@@ -334,34 +334,34 @@ SOURCES = {
             {
                 "name": "cn_road_traffic_safety_law",
                 "type": "html",
-                "base_url": "http://english.www.gov.cn/archive/laws_regulations/2014/08/23/content_281474983042477.htm",
+                "base_url": "http://www.npc.gov.cn/zgrdw/englishnpc/Law/2007-12/11/content_1383213.htm",
                 "official": True,
-                "notes": "Road Traffic Safety Law of the PRC (Official English Version).",
+                "notes": "Road Traffic Safety Law of the PRC (Official English Version - NPC).",
             },
         ],
         "visa_residency": [
             {
                 "name": "cn_exit_entry_admin_law",
                 "type": "html",
-                "base_url": "http://english.www.gov.cn/archive/laws_regulations/2014/08/23/content_281474983042515.htm",
+                "base_url": "http://www.npc.gov.cn/zgrdw/englishnpc/Law/2013-02/20/content_1754084.htm",
                 "official": True,
-                "notes": "Exit and Entry Administration Law of the PRC.",
+                "notes": "Exit and Entry Administration Law of the PRC (2013).",
             },
         ],
         "public_decency": [
             {
-                "name": "cn_public_order_placeholder",
+                "name": "cn_public_security_punishments_law",
                 "type": "html",
-                "base_url": "http://english.www.gov.cn/archive/laws_regulations/",
+                "base_url": "http://www.npc.gov.cn/zgrdw/englishnpc/Law/2007-12/11/content_1383215.htm",
                 "official": True,
-                "notes": "مدخل لقوانين العقوبات الإدارية والأمن العام (Public Security Administration Punishments Law).",
+                "notes": "Public Security Administration Punishments Law (covers public conduct & order).",
             },
         ],
         "labor": [
             {
-                "name": "cn_labour_law_portal",
+                "name": "cn_labour_law",
                 "type": "html",
-                "base_url": "http://english.www.gov.cn/archive/laws_regulations/",
+                "base_url": "http://www.npc.gov.cn/zgrdw/englishnpc/Law/2007-12/12/content_1383754.htm",
                 "official": True,
                 "notes": "Labour Law of the PRC.",
             },
@@ -370,7 +370,7 @@ SOURCES = {
             {
                 "name": "cn_food_safety_law",
                 "type": "html",
-                "base_url": "http://english.www.gov.cn/archive/laws_regulations/2014/08/23/content_281474983042473.htm",
+                "base_url": "http://www.npc.gov.cn/zgrdw/englishnpc/Law/2011-02/15/content_1620635.htm",
                 "official": True,
                 "notes": "Food Safety Law of the PRC.",
             },

@@ -31,7 +31,6 @@ class LawSpider(scrapy.Spider):
         self.logger.info(f"Scraping {source_info['name']} ({source_info['base_url']})")
         
         # منطق استخراج البيانات (يعتمد على نوع الموقع)
-        # هذا مثال بسيط، وسيحتاج لتخصيص لكل موقع لاحقاً
         
         # افتراض: إذا كان الرابط مباشراً لقانون (LawDetails أو PDF)
         if "LawDetails" in response.url or response.url.endswith(".pdf"):
@@ -51,13 +50,73 @@ class LawSpider(scrapy.Spider):
 
     def parse_law_detail(self, response):
         source_info = response.meta.get("source_info", {})
-        # استخراج العنوان الرئيسي
         main_title = response.css("h1::text").get() or response.css("title::text").get()
         if not main_title:
             main_title = f"Law from {self.country} - {self.section}"
+
+        # ---------------------------------------------------------
+        # الطريقة الأولى: الاستخراج المباشر عبر الهيكل (Selectors) - الأدق
+        # ---------------------------------------------------------
+        # نبحث عن الحاويات التي تمثل المواد بناءً على تحليل المستخدم
+        articles = response.css("div.article_item")
+        
+        if articles:
+            self.logger.info(f"Found {len(articles)} structured articles via CSS selectors.")
             
-        # استخراج النص الكامل باستخدام XPath لضمان عدم تفويت أي جزء (خاصة النصوص التي لم تلتقطها المحددات السابقة)
-        # نستبعد العناصر غير الضرورية مثل القوائم والترويسة
+            for article in articles:
+                # استخراج عنوان المادة (h3)
+                article_title = article.css("h3::text").get()
+                if not article_title:
+                    continue # تخطي إذا لم يوجد عنوان
+                
+                article_title = article_title.strip()
+                
+                # استخراج النص: قد يكون داخل div.HTMLContainer أو p مباشرة
+                # نستخدم xpath لجمع كل النصوص داخل هذه الحاوية باستثناء العنوان نفسه
+                # الطريقة: نأخذ كل النصوص التي تأتي بعد العنوان h3
+                
+                # تجميع النصوص من الفقرات والحاويات
+                texts = article.css("div.HTMLContainer ::text, p ::text").getall()
+                
+                # تنظيف النصوص من عبارات التعديل والهوامش
+                cleaned_texts = []
+                for t in texts:
+                    t = t.strip()
+                    if not t:
+                        continue
+                    # استبعاد عبارات التعديل الشائعة
+                    if "عُدلت هذه المادة" in t or "بموجب المرسوم الملكي" in t or "وتاريخ" in t and "هـ" in t:
+                        continue
+                    cleaned_texts.append(t)
+                
+                article_body = "\n".join(cleaned_texts)
+                
+                # تنظيف النص
+                if not article_body:
+                     # محاولة بديلة: أحياناً النص يكون مباشراً داخل الـ div
+                     body_texts = article.xpath('text()').getall()
+                     article_body = "\n".join([t.strip() for t in body_texts if t.strip()])
+                #عنوان المادة مع نصها
+                full_article_text = f"{article_title}\n{article_body}"
+
+                yield LawItem(
+                    title=f"{main_title.strip()} - {article_title}",
+                    original_text=article_body if article_body else " ",
+                    country=self.country,
+                    category=self.section,
+                    article_number=article_title,
+                    source_url=f"{response.url}",
+                    date_scraped="now"
+                )
+            return # انتهينا، لا داعي لإكمال الكود للطريقة القديمة
+
+        # ---------------------------------------------------------
+        # الطريقة الثانية (الاحتياطية): الاستخراج الشامل + Regex
+        # تستخدم فقط إذا لم نجد الهيكل div.article_item
+        # ---------------------------------------------------------
+        self.logger.warning("Structured articles not found, falling back to full-text regex parsing.")
+        
+        # استخراج النص الكامل باستخدام XPath لضمان عدم تفويت أي جزء
         content_list = response.xpath('//body//*[not(self::script) and not(self::style) and not(ancestor::nav) and not(ancestor::header) and not(ancestor::footer)]/text()').getall()
         full_content = "\n".join([t.strip() for t in content_list if t.strip()])
             
@@ -65,13 +124,12 @@ class LawSpider(scrapy.Spider):
         full_content = full_content.strip()
         
         # نمط Regex محسن لالتقاط "المادة" ورقمها
-        # التحديث: يشمل الأرقام (0-9، ٠-٩) والأقواس () لضمان عدم تفويت "المادة 5" أو "المادة (5)"
         article_pattern = re.compile(r'(?:^|\n)(المادة\s+(?:[\u0600-\u06FF0-9٠-٩\(\)]+\s*){1,5})', re.MULTILINE)
         
         matches = list(article_pattern.finditer(full_content))
         
         if matches:
-            # معالجة المقدمة (ما قبل المادة الأولى)
+            # ... (نفس كود الـ Regex السابق لمعالجة المقدمة والمواد)
             preamble_end = matches[0].start()
             preamble = full_content[:preamble_end].strip()
             
@@ -88,18 +146,11 @@ class LawSpider(scrapy.Spider):
             
             # معالجة المواد
             for i, match in enumerate(matches):
-                current_article_title = match.group(1).strip().replace('\n', ' ') # تنظيف العنوان من النزول للسطر
+                current_article_title = match.group(1).strip().replace('\n', ' ')
                 start_pos = match.end()
-                
-                # نهاية النص هي بداية المادة التالية، أو نهاية الملف للمادة الأخيرة
                 end_pos = matches[i+1].start() if i + 1 < len(matches) else len(full_content)
-                
                 article_body = full_content[start_pos:end_pos].strip()
                 
-                # دمج العنوان مع النص في original_text ليكون كاملاً
-                full_article_text = f"{current_article_title}\n{article_body}"
-                
-                # إنشاء معرف فريد للرابط
                 safe_article_num = current_article_title.replace(" ", "_")
                 
                 yield LawItem(
