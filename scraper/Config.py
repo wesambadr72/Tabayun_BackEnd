@@ -59,7 +59,7 @@ SOURCES = {
         # العمل والعقود
         "labor": [
             {
-                "name": "sa_labour_law_pdf",
+                "name": "sa_labor_law_pdf",
                 "type": "html",
                 "base_url": "https://laws.boe.gov.sa/BoeLaws/Laws/LawDetails/08381293-6388-48e2-8ad2-a9a700f2aa94/1",
                 "official": True,
@@ -84,14 +84,14 @@ SOURCES = {
             {
                 "name": "uk_road_traffic_act_1988",
                 "type": "xml",
-                "base_url": "htthttps://www.legislation.gov.uk/ukpga/1988/52/data.xml",
+                "base_url": "https://www.legislation.gov.uk/ukpga/1988/52/data.xml",
                 "official": True,
                 "notes": "Road Traffic Act 1988 – قانون مرور تاريخي يعطي صورة عن تنظيم المرور.[web:117]",
             },
         ],
         "visa_residency": [
             {
-                "name": "uk_immigration_acts_pdf",
+                "name": "uk_immigration_acts_1971",
                 "type": "xml",
                 "base_url": "https://www.legislation.gov.uk/ukpga/1971/77/data.xml",
                 "official": True,
@@ -109,7 +109,7 @@ SOURCES = {
         ],
         "labor": [
             {
-                "name": "uk_labour_law_portal",
+                "name": "uk_labor_law_portal",
                 "type": "xml",
                 "base_url": "https://www.legislation.gov.uk/ukpga/1996/18/data.xml",
                 "official": True,
@@ -130,47 +130,47 @@ SOURCES = {
    "de": {
         "traffic": [
             {
-                "name": "de_traffic_portal",
-                "type": "xml",
-                "base_url": "https://www.gesetze-im-internet.de/stvg/xml.zip",
+                "name": "de_traffic_law",
+                "type": "html",
+                "base_url": "https://www.gesetze-im-internet.de/stvg/BJNR004370909.html",
                 "official": True,
-                "notes": "مدخل لقوانين مثل Straßenverkehrs-Ordnung (StVg) لقواعد المرور.",
+                "notes": "نظام المرور الألماني (StVG) .",
             },
         ],
         "visa_residency": [
             {
-                "name": "de_residence_act_info",
-                "type": "xml",
-                "base_url": "https://www.gesetze-im-internet.de/aufenthg_2004/xml.zip",
-                "official": False,
-                "notes": "مدخل لقوانين مثل AufenthG 2004 لقواعد الإقامة.",
+                "name": "de_residence_act",
+                "type": "html",
+                "base_url": "https://www.gesetze-im-internet.de/aufenthg_2004/BJNR195010004.html",
+                "official": True,
+                "notes": "نظام الإقامة الألماني (AufenthG)",
             },
         ],
         "public_decency": [
             {
-                "name": "de_public_order_placeholder",
-                "type": "xml",
-                "base_url": "https://www.gesetze-im-internet.de/stgb/xml.zip",
+                "name": "de_criminal_code",
+                "type": "html",
+                "base_url": "https://www.gesetze-im-internet.de/stgb/BJNR001270871.html",
                 "official": True,
-                "notes": "مدخل لقوانين مثل Öffentliches Ordnungsgesetz (StGB) لقواعد السلوك العام.",
+                "notes": "القانون الجنائي الألماني (StGB) - يشمل مواد السلوك العام.",
             },
         ],
         "labor": [
             {
-                "name": "de_labour_law_portal",
-                "type": "xml",
-                "base_url": "https://www.gesetze-im-internet.de/bgb/xml.zip",
+                "name": "de_labor_law",
+                "type": "html",
+                "base_url": "https://www.gesetze-im-internet.de/bgb/BJNR001950896.html",
                 "official": True,
-                "notes": "مدخل لقوانين العمل مثل Arbeitszeitgesetz وغيره.",
+                "notes": "القانون المدني الألماني (BGB) - قسم علاقات العمل.",
             },
         ],
         "food": [
             {
-                "name": "de_food_regulation_portal",
-                "type": "xml",
-                "base_url": "https://www.gesetze-im-internet.de/lfgb/xml.zip",
+                "name": "de_food_law",
+                "type": "html",
+                "base_url": "https://www.gesetze-im-internet.de/lfgb/BJNR261810005.html",
                 "official": True,
-                "notes": "مدخل لقوانين مثل Landwirtschaftliche Gesetzgebung (LFGB) لقواعد الغذاء.",
+                "notes": "قانون الغذاء والأعلاف الألماني (LFGB).",
             }
         ],
     },
@@ -210,7 +210,7 @@ SOURCES = {
         ],
         "labor": [
             {
-                "name": "in_labour_law_portal",
+                "name": "in_labor_law_portal",
                 "type": "html",
                 "base_url": "https://www.indiacode.nic.in/",
                 "official": True,
@@ -260,7 +260,7 @@ SOURCES = {
         ],
         "labor": [
             {
-                "name": "pk_labour_law_portal",
+                "name": "pk_labor_law_portal",
                 "type": "html",
                 "base_url": "https://punjablaws.gov.pk/",
                 "official": True,
@@ -310,7 +310,7 @@ SOURCES = {
         ],
         "labor": [
             {
-                "name": "id_labour_law_portal",
+                "name": "id_labor_law_portal",
                 "type": "html",
                 "base_url": "https://peraturan.go.id/eng",
                 "official": True,
@@ -359,7 +359,7 @@ SOURCES = {
         ],
         "labor": [
             {
-                "name": "cn_labour_law",
+                "name": "cn_labor_law",
                 "type": "html",
                 "base_url": "http://www.npc.gov.cn/zgrdw/englishnpc/Law/2007-12/12/content_1383754.htm",
                 "official": True,
