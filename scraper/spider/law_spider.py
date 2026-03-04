@@ -50,8 +50,17 @@ class LawSpider(scrapy.Spider):
         if de_articles:
             self.logger.info(f"Found {len(de_articles)} German articles (jnnorm).")
             for article in de_articles:
-                raw_article_number = article.css("span.jnenbez::text").get() 
-                article_number = raw_article_number.replace("§","").strip() if raw_article_number else "N/A"
+                raw_number = article.css("span.jnenbez::text").get()
+                article_number = raw_number.replace("§", "").strip() if raw_number else "N/A"
+                
+                # تطبيق فلتر المواد المستهدفة (Target Sections Filter)
+                target_sections = source_info.get("target_sections", [])
+                if target_sections:
+                    # نتحقق إذا كان رقم المادة يبدأ بأحد الأرقام المطلوبة
+                    is_target = any(raw_number.strip().startswith(target) for target in target_sections if raw_number)
+                    if not is_target:
+                        continue # تخطي المادة غير المطلوبة
+
                 article_title = article.css("span.jnentitel::text").get() or ""
                 texts = article.css("div.jurAbsatz ::text").getall()
                 article_body = "\n".join([t.strip() for t in texts if t.strip()])
