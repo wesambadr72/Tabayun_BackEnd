@@ -91,6 +91,8 @@ class LegalContent(Base):
     alt_text = Column(String(255), nullable=True)
     ui_role = Column(String(50), nullable=True)
     is_live = Column(Integer, default=0)
+    importance_score = Column(Integer, default=0) # من 1 إلى 10
+    importance_reason = Column(String(500), nullable=True) # سبب التقييم من AI
     
     # Relationships
     category = relationship("Category", back_populates="contents")

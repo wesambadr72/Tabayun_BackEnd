@@ -36,21 +36,30 @@ class GeminiService:
         target_lang = "Arabic" if language == "ar" else "English"
         
         prompt = f"""
-        You are a professional legal assistant. Answer the user's question based ONLY on the provided legal context.
-
-        Legal Context:
-        \"\"\"{context}\"\"\"
-
-        User Question:
-        \"\"\"{question}\"\"\"
-
-        Instructions:
-        1. Answer accurately and concisely using the provided context.
-        2. If the answer is not in the context, state that you don't have enough information.
-        3. Maintain a professional tone.
-        4. If the question is not legal, politely decline.
-
-        Respond ONLY in {target_lang}.
+        {{
+            "role": "professional legal assistant",
+            "task": "answer_legal_question",
+            "context": {{
+                "legal_source": "{context}"
+            }},
+            "user_query": "{question}",
+            "output_format": {{
+                "language": "{target_lang}",
+                "schema": {{
+                    "answer": "concise explanation",
+                    "is_legal": "boolean",
+                    "has_enough_info": "boolean",
+                    "references": "list of articles"
+                }}
+            }},
+            "constraints": [
+                "Answer ONLY based on the provided context",
+                "If info is missing, set has_enough_info to false",
+                "Maintain professional legal tone",
+                "Respond ONLY with the JSON object",
+                "If the question is not legal, set is_legal to false"
+            ]
+        }}
         """
         try:
             return await self.generate_answer(prompt)

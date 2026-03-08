@@ -1,52 +1,88 @@
 from app.services.gemini_service import GeminiService
 from sqlalchemy.orm import Session
 from app.db.models import LegalContent
+from google.genai import types
 import asyncio
+import json
 
 class LawSimplifier(GeminiService):
     """خبير قانوني لتبسيط النصوص القانونية"""
     
+    async def _get_ai_response(self, prompt: str) -> dict:
+        """جلب الاستجابة كـ JSON مباشرة من النموذج"""
+        
+        response = await self.client.aio.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+        )
+        # النموذج سيرجع قاموس بايثون (dict) مباشرة
+        return response.parsed
+
     async def simplify(self, law_text: str, language: str = "ar", db: Session = None, law_id: int = None) -> dict:
         """
-        Takes a formal legal text and returns it in a simplified format.
-        If db and law_id are provided, saves the result to the database.
+        Main method to simplify legal text and save to DB.
         """
         target_lang = "Arabic" if language == "ar" else "English"
-        
-        prompt = f"""
-        You are a legal expert and a public awareness content creator. 
-        Your task is to transform complex legal texts into a very simple "summary" that anyone can understand.
-
-        Legal Text:
-        \"\"\"{law_text}\"\"\"
-
-        Instructions:
-        1. Summarize the law in one simple and powerful sentence.
-        2. Use clear, everyday language suitable for non-lawyers.
-        3. Focus on the main points and avoid jargon.
-
-        Respond ONLY in {target_lang}.
-        """
+        prompt = self._build_prompt(law_text, target_lang)
 
         try:
-            response = await self.client.aio.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-            )
-            # Save to database if db is connected and law_id are provided
+            # 1. استخراج الاستجابة كـ JSON جاهز
+            result_json = await self._get_ai_response(prompt)
+            
+            summary = result_json.get("summary", "")
+            punishment = result_json.get("punishment", "")
+            
+            # تجهيز النص النهائي المدمج
+            simplified_output = summary
+            if punishment and punishment.lower() not in ["none", "لا يوجد", ""]:
+                simplified_output = f"{summary}\n\nالعقوبة: {punishment}"
+
+            # 2. حفظ البيانات في DB
             if db and law_id:
-                try:
-                    law_content = db.query(LegalContent).filter(LegalContent.id == law_id).first()
-                    if law_content:
-                        law_content.simplified_text = response.text.strip()
-                        db.commit()
-                        db.refresh(law_content)
-                except Exception as e:
-                    return {"error": str(e)}
+                self._save_to_db(db, law_id, simplified_output)
             
             return {
-                "simplified_text": response.text.strip()
+                "summary": summary,
+                "punishment": punishment,
+                "full_simplified": simplified_output
             }
             
         except Exception as e:
             return {"error": str(e)}
+
+    def _build_prompt(self, law_text: str, target_lang: str) -> str:
+        """بناء البرومبت بهيكل JSON"""
+        return f"""
+        {{
+            "role": "legal_expert",
+            "task": "simplify_legal_text",
+            "legal_text": "{law_text}",
+            "output_format": {{
+                "language": "{target_lang}",
+                "schema": {{
+                    "summary": "One simple and powerful sentence summarizing the core rule of the law",
+                    "punishment": "Clear explanation of penalties if explicitly mentioned in this text, else 'None'"
+                }}
+            }},
+            "constraints": [
+                "Use clear, everyday language",
+                "Focus ONLY on the content of the provided legal text",
+                "Be extremely concise",
+                "Respond ONLY with the JSON object"
+            ]
+        }}
+        """
+
+    def _save_to_db(self, db: Session, law_id: int, text: str):
+        """وظيفة مستقلة للحفظ في قاعدة البيانات"""
+        try:
+            law_content = db.query(LegalContent).filter(LegalContent.id == law_id).first()
+            if law_content:
+                law_content.simplified_text = text.strip()
+                db.commit()
+        except Exception as e:
+            db.rollback()
+            raise e
