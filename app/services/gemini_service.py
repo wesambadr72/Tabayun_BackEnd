@@ -3,14 +3,14 @@ from app.core.config import settings
 import asyncio
 
 class GeminiService:
-    """الخدمة المركزية للتواصل مع Gemini API"""
+    """Central service for communicating with Gemini API"""
     
     def __init__(self, api_key: str = None, model_name: str = None):
         self.api_key = api_key or settings.GEMINI_API_KEY
         self.model_name = model_name or settings.GEMINI_MODEL_NAME 
         self.client = genai.Client(api_key=self.api_key)
         
-        # إعدادات التوليد الافتراضية
+        # Default generation settings
         self.config = {
             "temperature": 0.4,
             "top_p": 0.95,
@@ -19,7 +19,7 @@ class GeminiService:
         }
 
     async def generate_answer(self, prompt: str) -> str:
-        """توليد إجابة مباشرة من الموديل"""
+        """Generate a direct answer from the model"""
         try:
             response = await self.client.aio.models.generate_content(
                 model=self.model_name,
@@ -32,7 +32,7 @@ class GeminiService:
             return None
 
     async def generate_with_context(self, question: str, context: str, language: str = "ar") -> str:
-        """توليد إجابة بناءً على سياق (RAG)"""
+        """Generate an answer based on context (RAG)"""
         target_lang = "Arabic" if language == "ar" else "English"
         
         prompt = f"""

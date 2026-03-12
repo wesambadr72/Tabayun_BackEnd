@@ -5,7 +5,7 @@ from google.genai import types
 import json
 
 class LawRanker(GeminiService):
-    """خبير لتقييم أهمية المواد القانونية للجمهور والزوار"""
+    """Expert for evaluating the importance of legal articles for the public and visitors"""
 
     def _build_rank_prompt(self, law_text: str) -> str:
         return f"""
@@ -16,14 +16,14 @@ class LawRanker(GeminiService):
             "output_format": {{
                 "schema": {{
                     "score": "integer from 1 to 10",
-                    "reason": "short explanation in Arabic"
+                    "reason": "short explanation in English"
                 }}
             }},
             "criteria": {{
-                "score_10": "Immediate behavioral rules, penalties (fines/jail), or safety prohibitions",
-                "score_7_9": "Essential rights, traffic rules, or common public decency rules",
-                "score_4_6": "General procedures, documentation requirements, or secondary rules",
-                "score_1_3": "Internal government procedures, budget, committee formation, or definitions"
+                "score_9_10": "Direct behavior in public or safety rules with clear fines, detention, or deportation risk for tourists",
+                "score_7_8": "High-frequency daily rules (public decency, dress, photography, basic traffic) that most tourists will face",
+                "score_5_6": "Important rights, documentation, and general procedures that affect the tourist journey but not every moment",
+                "score_1_4": "Internal government procedures, institutional/budget articles, or technical definitions with minimal direct impact on tourists"
             }},
             "constraints": "Respond ONLY with the JSON object"
         }}
@@ -33,7 +33,7 @@ class LawRanker(GeminiService):
         law = db.query(LegalContent).filter(LegalContent.id == law_id).first()
         if not law: return {"error": "Law not found"}
 
-        prompt = self._build_rank_prompt(law.original_text[:2000]) # نرسل أول 2000 حرف للتوفير
+        prompt = self._build_rank_prompt(law.original_text[:2000]) # Send first 2000 chars to save tokens
 
         try:
             response = await self.client.aio.models.generate_content(
@@ -46,7 +46,7 @@ class LawRanker(GeminiService):
             score = result.get("score", 0)
             reason = result.get("reason", "")
 
-            # تحديث قاعدة البيانات
+            # Update database
             law.importance_score = score
             law.importance_reason = reason
             db.commit()
