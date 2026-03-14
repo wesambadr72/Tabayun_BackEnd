@@ -5,6 +5,8 @@ from google.genai import types
 import asyncio
 import json
 
+from app.utils.helpers import clean_and_parse_json
+
 class LawSimplifier(GeminiService):
     """خبير قانوني لتبسيط النصوص القانونية"""
     
@@ -18,62 +20,99 @@ class LawSimplifier(GeminiService):
                 response_mime_type="application/json"
             )
         )
-        # النموذج سيرجع قاموس بايثون (dict) مباشرة
-        return response.parsed
+        
+        result = response.parsed
+        if not result and response.text:
+            result = clean_and_parse_json(response.text)
+            
+        return result
 
-    async def simplify(self, law_text: str, language: str = "ar", db: Session = None, law_id: int = None) -> dict:
+    async def simplify(self, law_id: int, db: Session, language: str = "ar") -> dict:
         """
         Main method to simplify legal text and save to DB.
         """
+        law = db.query(LegalContent).filter(LegalContent.id == law_id).first()
+        if not law:
+            return {"error": "Law not found"}
+            
         target_lang = "Arabic" if language == "ar" else "English"
-        prompt = self._build_prompt(law_text, target_lang)
+        category_name = law.category.name if law.category else "General"
+        
+        prompt = self._build_prompt(law.title, law.original_text, category_name, target_lang)
 
         try:
-            # 1. استخراج الاستجابة كـ JSON جاهز
-            result_json = await self._get_ai_response(prompt)
+            # Using response_schema to force structured output and enable response.parsed
+            config = types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema={
+                    "type": "OBJECT",
+                    "properties": {
+                        "summary": {"type": "STRING"},
+                        "punishment": {"type": "STRING"}
+                    },
+                    "required": ["summary", "punishment"]
+                },
+            )
+
+            response = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=config
+            )
+            
+            result_json = response.parsed
+            if not result_json and response.text:
+                result_json = clean_and_parse_json(response.text)
+
+            if not result_json:
+                return {"error": "Failed to generate simplification"}
             
             summary = result_json.get("summary", "")
             punishment = result_json.get("punishment", "")
             
             # تجهيز النص النهائي المدمج
             simplified_output = summary
-            if punishment and punishment.lower() not in ["none", "لا يوجد", ""]:
+            if punishment and punishment.lower() not in ["none", "لا يوجد", "n/a", ""]:
                 simplified_output = f"{summary}\n\nالعقوبة: {punishment}"
 
             # 2. حفظ البيانات في DB
-            if db and law_id:
-                self._save_to_db(db, law_id, simplified_output)
+            law.simplified_text = simplified_output.strip()
+            db.commit()
             
             return {
+                "id": law_id,
                 "summary": summary,
                 "punishment": punishment,
                 "full_simplified": simplified_output
             }
             
         except Exception as e:
+            db.rollback()
             return {"error": str(e)}
 
-    def _build_prompt(self, law_text: str, target_lang: str) -> str:
-        """بناء البرومبت بهيكل JSON"""
+    def _build_prompt(self, title: str, law_text: str, category: str, target_lang: str) -> str:
+        """بناء البرومبت بلغة طبيعية واضحة لتبسيط النص"""
         return f"""
-        {{
-            "role": "legal_expert",
-            "task": "simplify_legal_text",
-            "legal_text": "{law_text}",
-            "output_format": {{
-                "language": "{target_lang}",
-                "schema": {{
-                    "summary": "One simple and powerful sentence summarizing the core rule of the law",
-                    "punishment": "Clear explanation of penalties if explicitly mentioned in this text, else 'None'"
-                }}
-            }},
-            "constraints": [
-                "Use clear, everyday language",
-                "Focus ONLY on the content of the provided legal text",
-                "Be extremely concise",
-                "Respond ONLY with the JSON object"
-            ]
-        }}
+        Simplify this legal article for a regular person.
+        Provide the output in {target_lang}.
+
+        Article Details:
+        - Title: {title}
+        - Category: {category}
+        - Original Text: {law_text}
+
+        Requirements:
+        1. Summary: One or two simple and clear sentences summarizing the core rule.
+        2. Punishment: Clear explanation of penalties if mentioned, otherwise write 'لا يوجد عقوبات'.
+
+        Constraints:
+        - Use friendly, everyday language.
+        - Focus on what the person MUST or MUST NOT do.
+        - Be extremely concise.
+        - Do not change the core meaning of the rule.
+        - Do not include any additional information.
+        - Do not include any explanations or notes.
+        - Respond strictly in JSON format.
         """
 
     def _save_to_db(self, db: Session, law_id: int, text: str):
