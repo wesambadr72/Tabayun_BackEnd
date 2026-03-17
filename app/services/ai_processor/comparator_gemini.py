@@ -1,31 +1,33 @@
 from app.services.gemini_service import GeminiService
 from sqlalchemy.orm import Session
-from app.db.models import LegalContent, ComparativeLaw
+from app.db.models import LegalContent, ComparativeLaw, SystemConfig
 import asyncio
 from app.utils.helpers import clean_and_parse_json
 
 class LawComparator(GeminiService):
     """خبير قانوني للمقارنة بين النصوص القانونية"""
     
-    def _build_comparison_prompt(self, law_saudi: dict, law_foreign: dict, target_lang: str) -> str:
-        """بناء البرومبت بلغة طبيعية واضحة للمقارنة بين قانونين"""
-        return f"""
-        Compare these two legal articles and provide a brief summary of the differences for a tourist.
-        The output must be in {target_lang}.
+    def _build_comparison_prompt(self, saudi_title: str, saudi_text: str, foreign_country: str, foreign_title: str, foreign_text: str, target_lang: str, template: str = None) -> str:
+        """بناء البرومبت باستخدام قالب (Template) سواء من قاعدة البيانات أو الافتراضي"""
+        
+        if not template:
+            template = """
+            Compare these two legal articles and provide a brief summary of the differences for a tourist.
+            The output must be in {target_lang}.
 
-        Saudi Law:
-        - Title: {law_saudi['title']}
-        - Text: {law_saudi['text']}
+            Saudi Law:
+            - Title: {saudi_title}
+            - Text: {saudi_text}
 
-        Foreign Law ({law_foreign['country']}):
-        - Title: {law_foreign['title']}
-        - Text: {law_foreign['text']}
+            Foreign Law ({foreign_country}):
+            - Title: {foreign_title}
+            - Text: {foreign_text}
 
-        Requirements:
-        1. Comparison Summary: ONE punchy and clear sentence in {target_lang} comparing both (e.g. 'Both require X, but UK has Y').
-        2. Saudi Point: Key rule in Saudi Arabia in one short sentence.
-        3. Foreign Point: Key rule in the other country in one short sentence.
-        4. Conclusion: One short practical advice for the traveler in {target_lang}.
+            Requirements:
+            1. Comparison Summary: ONE punchy and clear sentence in {target_lang} comparing both (e.g. 'Both require X, but UK has Y').
+            2. Saudi Point: Key rule in Saudi Arabia in one short sentence.
+            3. Foreign Point: Key rule in the other country in one short sentence.
+            4. Conclusion: One short practical advice for the traveler in {target_lang}.
 
         Constraints:
         - Focus on the most important difference for a tourist.
@@ -34,6 +36,15 @@ class LawComparator(GeminiService):
         - Do not include any explanations or notes.
         - Respond strictly in JSON format.
         """
+
+        return template.format(
+            saudi_title=saudi_title,
+            saudi_text=saudi_text,
+            foreign_country=foreign_country,
+            foreign_title=foreign_title,
+            foreign_text=foreign_text,
+            target_lang=target_lang
+        )
 
     async def compare_by_ids(self, saudi_law_id: int, foreign_law_id: int, db: Session, language: str = "ar") -> dict:
         """
@@ -50,10 +61,15 @@ class LawComparator(GeminiService):
             
             target_lang = "Arabic" if language == "ar" else "English"
             
-            saudi_data = {"title": saudi_law.title, "text": saudi_law.original_text}
-            foreign_data = {"country": foreign_law.country, "title": foreign_law.title, "text": foreign_law.original_text}
+            # 1. جلب البرومبت من قاعدة البيانات (SystemConfig) إذا وجد
+            db_config = db.query(SystemConfig).filter(SystemConfig.key == "comparison_prompt").first()
+            template = db_config.value if db_config else None
             
-            prompt = self._build_comparison_prompt(saudi_data, foreign_data, target_lang)
+            prompt = self._build_comparison_prompt(
+                saudi_law.title, saudi_law.original_text, 
+                foreign_law.country, foreign_law.title, foreign_law.original_text, 
+                target_lang, template
+            )
 
             # Using response_schema to force structured output
             config = types.GenerateContentConfig(

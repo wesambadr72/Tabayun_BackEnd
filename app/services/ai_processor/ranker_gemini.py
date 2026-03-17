@@ -1,6 +1,6 @@
 from app.services.gemini_service import GeminiService
 from sqlalchemy.orm import Session
-from app.db.models import LegalContent
+from app.db.models import LegalContent, SystemConfig
 from google.genai import types
 from app.utils.helpers import clean_and_parse_json
 import json
@@ -8,31 +8,45 @@ import json
 class LawRanker(GeminiService):
     """Expert for evaluating the importance of legal articles for the public and visitors"""
 
-    def _build_rank_prompt(self, law_title: str, law_text: str, category: str) -> str:
-        return f"""
-        Analyze the importance of this legal article for a typical tourist or resident in the country.
-        Provide a score from 1 to 10 and a brief reason in English.
+    def _build_rank_prompt(self, law_title: str, law_text: str, category: str, template: str = None) -> str:
+        """بناء البرومبت باستخدام قالب (Template) سواء من قاعدة البيانات أو الافتراضي"""
+        
+        if not template:
+            template = """
+            Analyze the importance of this legal article for a typical tourist or resident in the country.
+            Provide a score from 1 to 10 and a brief reason in English.
 
-        Article Details:
-        - Title: {law_title}
-        - Category: {category}
-        - Text: {law_text}
+            Article Details:
+            - Title: {law_title}
+            - Category: {category}
+            - Text: {law_text}
 
-        Scoring Criteria:
-        - 9-10 (Critical): Rules governing direct public behavior, safety, or laws with severe penalties like high fines, detention, or deportation (e.g., Traffic violations, Public Decency, Visas).
-        - 7-8 (High): Common daily rules that most tourists will encounter (e.g., Dress code, photography laws, basic traffic rules).
-        - 5-6 (Medium): Important procedures, rights, or documentation that affect the overall journey but are not encountered every moment.
-        - 1-4 (Low): Technical definitions, internal government procedures, or administrative/budget articles with minimal direct impact on a visitor's behavior.
+            Scoring Criteria:
+            - 9-10 (Critical): Rules governing direct public behavior, safety, or laws with severe penalties like high fines, detention, or deportation.
+            - 7-8 (High): Common daily rules that most tourists will encounter.
+            - 5-6 (Medium): Important procedures or documentation that affect the overall journey.
+            - 1-4 (Low): Technical definitions or internal government procedures.
 
-        Respond strictly in JSON format.
-        """
+            Respond strictly in JSON format.
+            """
+
+        return template.format(
+            law_title=law_title,
+            law_text=law_text,
+            category=category
+        )
 
     async def rank_law(self, db: Session, law_id: int) -> dict:
         law = db.query(LegalContent).filter(LegalContent.id == law_id).first()
         if not law: return {"error": "Law not found"}
 
         category_name = law.category.name if law.category else "General"
-        prompt = self._build_rank_prompt(law.title, law.original_text, category_name)
+        
+        # 1. جلب البرومبت من قاعدة البيانات (SystemConfig) إذا وجد
+        db_config = db.query(SystemConfig).filter(SystemConfig.key == "rank_prompt").first()
+        template = db_config.value if db_config else None
+        
+        prompt = self._build_rank_prompt(law.title, law.original_text, category_name, template)
 
         try:
             # Using response_schema to force structured output and enable response.parsed

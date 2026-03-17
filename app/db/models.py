@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, func, Index, Table, Float
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, func, Index, Table, Float, Boolean, JSON
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 from app.db.database import Base
@@ -20,7 +20,10 @@ class User(Base):
     avatar = Column(String, nullable=True)
     country = Column(String, nullable=False)
     language = Column(String, default="Arabic")
-    role = Column(String, default="user") # user, admin
+    role = Column(String, default="user") # user, admin, super_admin, editor
+    is_active = Column(Integer, default=1) # 1 for active, 0 for inactive
+    is_verified = Column(Integer, default=0) # 0 for not verified, 1 for verified
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
     bookmarks = relationship("Bookmark", back_populates="user")
@@ -31,6 +34,7 @@ class User(Base):
     sent_notifications = relationship("Notification", foreign_keys="Notification.sender_id", back_populates="sender")
     received_notifications = relationship("Notification", foreign_keys="Notification.recipient_id", back_populates="recipient")
     support_tickets = relationship("SupportTicket", back_populates="user")
+    audit_logs = relationship("AuditLog", back_populates="user")
 
 class UserSettings(Base):
     __tablename__ = "user_settings"
@@ -106,7 +110,6 @@ class LegalContent(Base):
         foreign_keys="ComparativeLaw.foreign_law_id",
         back_populates="foreign_content"
     )
-    bookmarks = relationship("Bookmark", back_populates="content")
 
 
 class ComparativeLaw(Base):
@@ -137,6 +140,7 @@ class ComparativeLaw(Base):
         foreign_keys=[foreign_law_id],
         back_populates="foreign_comparisons"
     )
+    bookmarks = relationship("Bookmark", back_populates="comparison")
     
     # Unique constraint: نفس المقارنة لا تتكرر
     __table_args__ = (
@@ -145,17 +149,22 @@ class ComparativeLaw(Base):
 
 
 class Bookmark(Base):
-    """علامات مرجعية للمستخدمين"""
+    """علامات مرجعية للمستخدمين للمقارنات"""
     __tablename__ = "bookmarks"
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    content_id = Column(Integer, ForeignKey("legal_contents.id"), nullable=False)
+    comparison_id = Column(Integer, ForeignKey("comparative_laws.id"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
     user = relationship("User", back_populates="bookmarks")
-    content = relationship("LegalContent", back_populates="bookmarks")
+    comparison = relationship("ComparativeLaw", back_populates="bookmarks")
+
+    # لمنع تكرار نفس المفضلة لنفس المستخدم
+    __table_args__ = (
+        Index('idx_user_comparison_bookmark', 'user_id', 'comparison_id', unique=True),
+    )
 
 class Feedback(Base):
     __tablename__ = "feedbacks"
@@ -219,18 +228,31 @@ class AboutUs(Base):
 
 class Notification(Base):
     __tablename__ = "notifications"
-    
     id = Column(Integer, primary_key=True, index=True)
-    sender_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
-    
-    title = Column(String, nullable=False)
-    message = Column(Text, nullable=False)
-    is_read = Column(Integer, default=0) # 0: unread, 1: read
+    title = Column(String)
+    content = Column(Text)
+    is_broadcast = Column(Boolean, default=True) # If true, sends to all users
+    target_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    # Relationships
-    sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_notifications")
-    recipient = relationship("User", foreign_keys=[recipient_id], back_populates="received_notifications")
-    category = relationship("Category", back_populates="notifications")
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    action = Column(String) # e.g., "ADD_LAW", "DELETE_USER", "UPDATE_AI_CONFIG"
+    table_name = Column(String)
+    record_id = Column(Integer, nullable=True)
+    old_values = Column(JSON, nullable=True)
+    new_values = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="audit_logs")
+
+class SystemConfig(Base):
+    __tablename__ = "system_configs"
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, index=True) # e.g., "gemini_prompt_simplification"
+    value = Column(Text)
+    example_value = Column(Text, nullable=True) # مثال للقيمة المتوقعة
+    description = Column(String, nullable=True)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

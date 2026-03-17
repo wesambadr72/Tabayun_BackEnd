@@ -1,6 +1,6 @@
 from app.services.gemini_service import GeminiService
 from sqlalchemy.orm import Session
-from app.db.models import LegalContent
+from app.db.models import LegalContent , SystemConfig
 from google.genai import types
 import asyncio
 import json
@@ -31,6 +31,7 @@ class LawSimplifier(GeminiService):
         """
         Main method to simplify legal text and save to DB.
         """
+        
         law = db.query(LegalContent).filter(LegalContent.id == law_id).first()
         if not law:
             return {"error": "Law not found"}
@@ -38,7 +39,11 @@ class LawSimplifier(GeminiService):
         target_lang = "Arabic" if language == "ar" else "English"
         category_name = law.category.name if law.category else "General"
         
-        prompt = self._build_prompt(law.title, law.original_text, category_name, target_lang)
+        # 1. جلب البرومبت من قاعدة البيانات (SystemConfig) إذا وجد
+        db_config = db.query(SystemConfig).filter(SystemConfig.key == "simplification_prompt").first()
+        base_prompt = db_config.value if db_config else self._get_default_prompt_template()
+        
+        prompt = self._build_prompt_from_template(base_prompt, law.title, law.original_text, category_name, target_lang)
 
         try:
             # Using response_schema to force structured output and enable response.parsed
@@ -90,20 +95,23 @@ class LawSimplifier(GeminiService):
             db.rollback()
             return {"error": str(e)}
 
-    def _build_prompt(self, title: str, law_text: str, category: str, target_lang: str) -> str:
-        """بناء البرومبت بلغة طبيعية واضحة لتبسيط النص"""
-        return f"""
-        Simplify this legal article for a regular person.
-        Provide the output in {target_lang}.
+    def _build_prompt(self, title: str, law_text: str, category: str, target_lang: str, template: str = None) -> str:
+        """بناء البرومبت باستخدام قالب (Template) سواء من قاعدة البيانات أو الافتراضي"""
+        
+        # إذا لم يتم تمرير قالب، نستخدم القالب الافتراضي
+        if not template:
+            template = """
+            Simplify this legal article for a regular person.
+            Provide the output in {target_lang}.
 
-        Article Details:
-        - Title: {title}
-        - Category: {category}
-        - Original Text: {law_text}
+            Article Details:
+            - Title: {title}
+            - Category: {category}
+            - Original Text: {law_text}
 
-        Requirements:
-        1. Summary: One or two simple and clear sentences summarizing the core rule.
-        2. Punishment: Clear explanation of penalties if mentioned, otherwise write 'لا يوجد عقوبات'.
+            Requirements:
+            1. Summary: One or two simple and clear sentences summarizing the core rule.
+            2. Punishment: Clear explanation of penalties if mentioned, otherwise write 'لا يوجد عقوبات'.
 
         Constraints:
         - Use friendly, everyday language.
@@ -114,6 +122,13 @@ class LawSimplifier(GeminiService):
         - Do not include any explanations or notes.
         - Respond strictly in JSON format.
         """
+
+        return template.format(
+            title=title,
+            law_text=law_text,
+            category=category,
+            target_lang=target_lang
+        )
 
     def _save_to_db(self, db: Session, law_id: int, text: str):
         """وظيفة مستقلة للحفظ في قاعدة البيانات"""
