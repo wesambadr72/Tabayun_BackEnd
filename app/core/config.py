@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     GEMINI_MODEL_NAME: str = ""
     EMBEDDING_MODEL: str = ""
     OPENAI_API_KEY: str = ""
+
+    
+    RESEND_API_KEY: str = ""
     LOG_LEVEL: str = "INFO"
 
     class Config:

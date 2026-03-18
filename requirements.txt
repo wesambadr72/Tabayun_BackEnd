@@ -16,6 +16,7 @@ httpx
 pgvector
 sentence-transformers
 google-generativeai
+resend
 scrapy
 numpy
 pandas

@@ -23,6 +23,7 @@ class User(Base):
     role = Column(String, default="user") # user, admin, super_admin, editor
     is_active = Column(Integer, default=1) # 1 for active, 0 for inactive
     is_verified = Column(Integer, default=0) # 0 for not verified, 1 for verified
+    is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
@@ -229,11 +230,17 @@ class AboutUs(Base):
 class Notification(Base):
     __tablename__ = "notifications"
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String)
-    content = Column(Text)
-    is_broadcast = Column(Boolean, default=True) # If true, sends to all users
-    target_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    is_read = Column(Integer, default=0) # 0 for unread, 1 for read
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_broadcast = Column(Boolean, default=True)
+    target_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    category = relationship("Category", back_populates="notifications")
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
@@ -242,8 +249,8 @@ class AuditLog(Base):
     action = Column(String) # e.g., "ADD_LAW", "DELETE_USER", "UPDATE_AI_CONFIG"
     table_name = Column(String)
     record_id = Column(Integer, nullable=True)
-    old_values = Column(JSON, nullable=True)
-    new_values = Column(JSON, nullable=True)
+    old_values = Column(JSON, nullable=True) # Changed from JSONB to JSON for compatibility
+    new_values = Column(JSON, nullable=True) # Changed from JSONB to JSON for compatibility
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="audit_logs")

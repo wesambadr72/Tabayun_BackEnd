@@ -6,6 +6,7 @@ from app.db.models import (
     SystemConfig, Notification, Category
 )
 from app.schemas.admin import AdminDashboardStats
+from app.services.notification_service import NotificationService
 
 class AdminService:
     @staticmethod
@@ -13,7 +14,6 @@ class AdminService:
         """
         إرجاع إحصائيات لوحة التحكم
         """
-        total_laws = db.query(func.count(LegalContent.id)).scalar() or 0
         total_countries = db.query(func.count(distinct(LegalContent.country))).scalar() or 0
         total_comparisons = db.query(func.count(ComparativeLaw.id)).scalar() or 0
         total_users = db.query(func.count(User.id)).scalar() or 0
@@ -22,14 +22,15 @@ class AdminService:
             total_laws=total_laws,
             total_countries=total_countries,
             total_comparisons=total_comparisons,
+            total_laws = db.query(func.count(LegalContent.id)).scalar() or 0,
             total_users=total_users
         )
 
     #  إدارة القوانين (Law Management)
 
     @staticmethod
-    def add_law(db: Session, admin_id: int, law_data: Dict[str, Any]) -> LegalContent:
-        """إضافة قانون جديد"""
+    async def add_law(db: Session, admin_id: int, law_data: Dict[str, Any]) -> LegalContent:
+        """إضافة قانون جديد وإشعار المشتركين"""
         new_law = LegalContent(**law_data)
         db.add(new_law)
         db.commit()
@@ -40,7 +41,18 @@ class AdminService:
             db, admin_id, "ADD_LAW", "legal_contents", 
             new_law.id, None, law_data
         )
+
+        # استدعاء منطق الإشعارات (منفصل)
+        await AdminService._trigger_law_notifications(db, new_law)
+        
         return new_law
+
+    @staticmethod
+    async def _trigger_law_notifications(db: Session, law: LegalContent):
+        """منطق إرسال الإشعارات المنفصل عند إضافة قانون جديد"""
+        await NotificationService.notify_new_law(
+            db, law.category_id, law.title
+        )
 
     @staticmethod
     def update_law(db: Session, admin_id: int, law_id: int, update_data: Dict[str, Any]) -> Optional[LegalContent]:
