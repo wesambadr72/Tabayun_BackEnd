@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr, field_validator
+from typing import Optional
 from datetime import datetime
+import re
 
 # الأجزاء المشتركة
 class UserBase(BaseModel):
@@ -12,6 +13,21 @@ class UserBase(BaseModel):
 # بيانات التسجيل
 class UserCreate(UserBase):
     password: str
+
+    @field_validator('password')
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError('يجب أن تكون كلمة المرور 8 خانات على الأقل')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('يجب أن تحتوي كلمة المرور على حرف صغير واحد على الأقل')
+        if not re.search(r'\d', v):
+            raise ValueError('يجب أن تحتوي كلمة المرور على رقم واحد على الأقل')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('يجب أن تحتوي كلمة المرور على رمز واحد على الأقل')
+        return v
 
 # تحديث الملف الشخصي 
 class UserUpdate(BaseModel):

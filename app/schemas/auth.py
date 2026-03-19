@@ -1,18 +1,15 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
+from typing import Optional
 
 class Token(BaseModel):
     access_token: str
     token_type: str
 
 class TokenData(BaseModel):
-    email: str | None = None
+    username: Optional[str] = None 
 
-class Login(BaseModel):
-    email: EmailStr
-    password: str
-
-class LoginHistory(BaseModel):
+class LoginHistoryResponse(BaseModel):
     id: int
     email: EmailStr
     login_time: datetime

@@ -14,6 +14,7 @@ class AdminService:
         """
         إرجاع إحصائيات لوحة التحكم
         """
+        total_laws = db.query(func.count(LegalContent.id)).scalar() or 0
         total_countries = db.query(func.count(distinct(LegalContent.country))).scalar() or 0
         total_comparisons = db.query(func.count(ComparativeLaw.id)).scalar() or 0
         total_users = db.query(func.count(User.id)).scalar() or 0
@@ -22,7 +23,6 @@ class AdminService:
             total_laws=total_laws,
             total_countries=total_countries,
             total_comparisons=total_comparisons,
-            total_laws = db.query(func.count(LegalContent.id)).scalar() or 0,
             total_users=total_users
         )
 
@@ -140,17 +140,21 @@ class AdminService:
     #  إدارة إعدادات النظام (System Config)
 
     @staticmethod
+    def get_system_config(db: Session, key: str) -> Optional[str]:
+        """جلب إعداد من النظام """
+        config = db.query(SystemConfig).filter(SystemConfig.key == key).first()
+        return config.value if config else None
+
+    @staticmethod
     def update_system_config(db: Session, admin_id: int, key: str, value: str, example_value: str = None, description: str = None) -> SystemConfig:
         """تعديل معلومات الذكاء الاصطناعي أو إعدادات النظام"""
         config = db.query(SystemConfig).filter(SystemConfig.key == key).first()
-        old_value = config.value if config else None
+        old_value = config.value if config else "NEW_CONFIG"
         
         if config:
             config.value = value
-            if example_value:
-                config.example_value = example_value
-            if description:
-                config.description = description
+            if example_value: config.example_value = example_value
+            if description: config.description = description
         else:
             config = SystemConfig(key=key, value=value, example_value=example_value, description=description)
             db.add(config)
@@ -158,7 +162,7 @@ class AdminService:
         db.commit()
         db.refresh(config)
         
-        # تسجيل العملية
+        # توثيق العملية (Audit Log)
         AdminService.log_action(
             db, admin_id, "UPDATE_SYSTEM_CONFIG", "system_configs", 
             config.id, {"value": old_value}, {"value": value}
@@ -167,29 +171,84 @@ class AdminService:
 
     @staticmethod
     def seed_default_configs(db: Session, admin_id: int):
-        """إدخال الإعدادات الافتراضية للنظام مع أمثلة للتوضيح"""
+        """إدخال الإعدادات الافتراضية للنظام حالياً"""
         default_configs = [
             {
                 "key": "gemini_model_name",
-                "value": "gemini-1.5-flash",
-                "example_value": "gemini-3.1-flash-lite-preview",
+                "value": "gemini-3.1-flash-lite-preview",
+                "example_value": "gemini-3.1-flash-preview",
                 "description": "اسم موديل الذكاء الاصطناعي المستخدم في المعالجة"
             },
             {
                 "key": "simplification_prompt",
-                "value": "Simplify this legal article for a regular person. Provide the output in {target_lang}. Article Details: - Title: {title} - Category: {category} - Original Text: {law_text}",
+                "value": """Simplify this legal article for a regular person.
+            Provide the output in {target_lang}.
+
+            Article Details:
+            - Title: {title}
+            - Category: {category}
+            - Original Text: {law_text}
+
+            Requirements:
+            1. Summary: One or two simple and clear sentences summarizing the core rule.
+            2. Punishment: Clear explanation of penalties if mentioned, otherwise write 'لا يوجد عقوبات'.
+
+        Constraints:
+        - Use friendly, everyday language.
+        - Focus on what the person MUST or MUST NOT do.
+        - Be extremely concise.
+        - Do not change the core meaning of the rule.
+        - Do not include any additional information.
+        - Do not include any explanations or notes.
+        - Respond strictly in JSON format.""",
                 "example_value": "قم بتبسيط النص القانوني التالي باللغة العربية بأسلوب سهل وواضح يركز على المحظورات والعقوبات.",
                 "description": "البرومبت الخاص بتبسيط القوانين"
             },
             {
                 "key": "comparison_prompt",
-                "value": "Compare these two legal articles and provide a brief summary of the differences for a tourist. Saudi Law: {saudi_title} - Foreign Law: {foreign_title}",
+                "value": """Compare these two legal articles and provide a brief summary of the differences for a tourist.
+            The output must be in {target_lang}.
+
+            Saudi Law:
+            - Title: {saudi_title}
+            - Text: {saudi_text}
+
+            Foreign Law ({foreign_country}):
+            - Title: {foreign_title}
+            - Text: {foreign_text}
+
+            Requirements:
+            1. Comparison Summary: ONE punchy and clear sentence in {target_lang} comparing both (e.g. 'Both require X, but UK has Y').
+            2. Saudi Point: Key rule in Saudi Arabia in one short sentence.
+            3. Foreign Point: Key rule in the other country in one short sentence.
+            4. Conclusion: One short practical advice for the traveler in {target_lang}.
+
+        Constraints:
+        - Focus on the most important difference for a tourist.
+        - Keep it very brief and direct.
+        - Do not include any additional information.
+        - Do not include any explanations or notes.
+        - Respond strictly in JSON format.""",
                 "example_value": "قارن بين القانون السعودي والقانون الأجنبي المذكورين، ووضح أهم فرق جوهري يهم السائح بلغة بسيطة.",
                 "description": "البرومبت الخاص بالمقارنة بين قانونين"
             },
             {
                 "key": "rank_prompt",
-                "value": "Analyze the importance of this legal article for a typical tourist. Article: {law_title}",
+                "value": """Analyze the importance of this legal article for a typical tourist or resident in the country.
+                Provide a score from 1 to 10 and a brief reason in English.
+
+                Article Details:
+                - Title: {law_title}
+                - Category: {category}
+                - Text: {law_text}
+
+                Scoring Criteria:
+                - 9-10 (Critical): Rules governing direct public behavior, safety, or laws with severe penalties like high fines, detention, or deportation.
+                - 7-8 (High): Common daily rules that most tourists will encounter.
+                - 5-6 (Medium): Important procedures or documentation that affect the overall journey.
+                - 1-4 (Low): Technical definitions or internal government procedures.
+
+                Respond strictly in JSON format.""",
                 "example_value": "قيم أهمية هذا القانون للسياح والمقيمين من 1 إلى 10 مع ذكر السبب باختصار باللغة الإنجليزية.",
                 "description": "البرومبت الخاص بتقييم أهمية القوانين"
             }

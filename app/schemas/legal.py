@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -17,34 +18,43 @@ class Category(CategoryBase):
 # Legal Content Schemas
 class LegalContentBase(BaseModel):
     title: str
-    description: str
+    country: str
     category_id: int
-    aria_label: str | None = None
-    alt_text: str | None = None
-    ui_role: str | None = None
+    original_text: Optional[str] = None
+    simplified_text: str
+    article_number: Optional[str] = None
+    source_url: Optional[str] = None
+    importance_score: int = 0
+    importance_reason: Optional[str] = None
     is_live: int = 0
+    aria_label: Optional[str] = None
+    alt_text: Optional[str] = None
+    ui_role: Optional[str] = None
 
 class LegalContentCreate(LegalContentBase):
     pass
 
 class LegalContent(LegalContentBase):
     id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
 # Comparative Law Schemas
 class ComparativeLawBase(BaseModel):
-    content_id: int
-    saudi_law: str
-    foreign_law: str
-    key_differences: str | None = None
+    saudi_law_id: int
+    foreign_law_id: int
+    summary: str
 
 class ComparativeLawCreate(ComparativeLawBase):
     pass
 
 class ComparativeLaw(ComparativeLawBase):
     id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

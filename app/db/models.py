@@ -31,11 +31,11 @@ class User(Base):
     feedbacks = relationship("Feedback", back_populates="user")
     searches = relationship("SearchHistory", back_populates="user")
     subscribed_categories = relationship("Category", secondary=subscriptions, back_populates="subscribers")
-    settings = relationship("UserSettings", back_populates="user", uselist=False)
+    settings = relationship("UserSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
     sent_notifications = relationship("Notification", foreign_keys="Notification.sender_id", back_populates="sender")
-    received_notifications = relationship("Notification", foreign_keys="Notification.recipient_id", back_populates="recipient")
-    support_tickets = relationship("SupportTicket", back_populates="user")
-    audit_logs = relationship("AuditLog", back_populates="user")
+    received_notifications = relationship("Notification", foreign_keys="Notification.recipient_id", back_populates="recipient", cascade="all, delete-orphan")
+    support_tickets = relationship("SupportTicket", back_populates="user", cascade="all, delete-orphan")
+    audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
 
 class UserSettings(Base):
     __tablename__ = "user_settings"
@@ -55,7 +55,7 @@ class Category(Base):
     __tablename__ = "categories"
     
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False, index=True)  # "المرور"
+    name = Column(String(100), unique=True, nullable=False, index=True)  
     description = Column(Text, nullable=True)
     icon = Column(String(255), nullable=True)  # path للأيقونة
     
@@ -70,11 +70,11 @@ class LegalContent(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     
-    article_number = Column(String(100), index=True, nullable=True)  # رقم المقالة (مثل "1234/2023")
+    article_number = Column(String(100), index=True, nullable=True) 
     
     # Basic Info
-    title = Column(String(300), index=True, nullable=False)  # "مخالفة حزام الأمان"
-    country = Column(String(50), index=True, nullable=False)  # "السعودية"
+    title = Column(String(300), index=True, nullable=False) 
+    country = Column(String(50), index=True, nullable=False)  
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     
     # Legal Texts
@@ -82,10 +82,10 @@ class LegalContent(Base):
     simplified_text = Column(Text, nullable=False)    # النص المبسط بواسطة AI
     
     # Metadata
-    source_url = Column(String(500), nullable=True)   # رابط المصدر (WorldLII)
+    source_url = Column(String(500), nullable=True)  
         
     # Vector Search
-    embedding = Column(Vector(384), nullable=True)    # 384 إذا استخدمت sentence-transformers
+    embedding = Column(Vector(384), nullable=True)   
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -124,7 +124,7 @@ class ComparativeLaw(Base):
     foreign_law_id = Column(Integer, ForeignKey("legal_contents.id"), nullable=False)
     
     # Summary (الخلاصة التوضيحية - جملة واحدة)
-    summary = Column(Text, nullable=False)  # "الكحول محرم في السعودية ومسموح في ألمانيا بشرط..."
+    summary = Column(Text, nullable=False) 
     
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -222,7 +222,7 @@ class SupportTicket(Base):
 class AboutUs(Base):
     __tablename__ = "about_us"
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False) # About, Team, Mission
+    title = Column(String, nullable=False) 
     body = Column(Text, nullable=False)
     image_url = Column(String, nullable=True)
     last_updated = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
@@ -231,7 +231,7 @@ class Notification(Base):
     __tablename__ = "notifications"
     id = Column(Integer, primary_key=True, index=True)
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     title = Column(String, nullable=False)
     message = Column(Text, nullable=False)
@@ -241,6 +241,8 @@ class Notification(Base):
     target_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     category = relationship("Category", back_populates="notifications")
+    recipient = relationship("User", foreign_keys=[recipient_id], back_populates="received_notifications")
+    sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_notifications")
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
@@ -249,8 +251,8 @@ class AuditLog(Base):
     action = Column(String) # e.g., "ADD_LAW", "DELETE_USER", "UPDATE_AI_CONFIG"
     table_name = Column(String)
     record_id = Column(Integer, nullable=True)
-    old_values = Column(JSON, nullable=True) # Changed from JSONB to JSON for compatibility
-    new_values = Column(JSON, nullable=True) # Changed from JSONB to JSON for compatibility
+    old_values = Column(JSON, nullable=True) 
+    new_values = Column(JSON, nullable=True) 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="audit_logs")
@@ -260,6 +262,6 @@ class SystemConfig(Base):
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String, unique=True, index=True) # e.g., "gemini_prompt_simplification"
     value = Column(Text)
-    example_value = Column(Text, nullable=True) # مثال للقيمة المتوقعة
+    example_value = Column(Text, nullable=True)
     description = Column(String, nullable=True)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

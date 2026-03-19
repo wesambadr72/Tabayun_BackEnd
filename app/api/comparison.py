@@ -1,7 +1,59 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+from typing import List, Optional
+from app.db.database import get_db
+from app.db.models import User, ComparativeLaw, Bookmark
+from app.services.ai_processor.comparator_gemini import LawComparator
+from app.schemas.user import BookmarkCreate, BookmarkResponse
+from app.core.security import get_current_user
 
 router = APIRouter()
 
-@router.get("/compare")
-async def compare_laws(country_a: str, country_b: str):
-    return {"comparison": f"Comparing laws between {country_a} and {country_b}"}
+@router.get("/priority", response_model=List[dict])
+def get_priority_comparisons(db: Session = Depends(get_db)):
+    """جلب قائمة المقارنات الذهبية (الحقول الأساسية فقط)"""
+    # جلب الحقول التي تهم الواجهة فقط
+    query = text("""
+        SELECT id, title, simplified_text, country, category_id, saudi_reference_id 
+        FROM priority_legal_contents
+    """)
+    result = db.execute(query).fetchall()
+    return [dict(row._mapping) for row in result]
+
+@router.post("/bookmark", response_model=BookmarkResponse)
+def add_bookmark(
+    bookmark_in: BookmarkCreate, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """حفظ مقارنة في المفضلة"""
+    # التأكد من وجود المقارنة
+    comparison = db.query(ComparativeLaw).filter(ComparativeLaw.id == bookmark_in.comparison_id).first()
+    if not comparison:
+        raise HTTPException(status_code=404, detail="Comparison not found")
+    
+    # التأكد من عدم وجودها مسبقاً للمستخدم
+    existing = db.query(Bookmark).filter(
+        Bookmark.user_id == current_user.id,
+        Bookmark.comparison_id == bookmark_in.comparison_id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Bookmark already exists")
+
+    new_bookmark = Bookmark(
+        user_id=current_user.id,
+        comparison_id=bookmark_in.comparison_id
+    )
+    db.add(new_bookmark)
+    db.commit()
+    db.refresh(new_bookmark)
+    return new_bookmark
+
+@router.get("/bookmarks", response_model=List[BookmarkResponse])
+def get_my_bookmarks(
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """جلب قائمة المفضلة الخاصة بالمستخدم"""
+    return db.query(Bookmark).filter(Bookmark.user_id == current_user.id).all()
