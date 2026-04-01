@@ -15,7 +15,7 @@ def get_priority_comparisons(db: Session = Depends(get_db)):
     """جلب قائمة المقارنات الذهبية (الحقول الأساسية فقط)"""
     # جلب الحقول التي تهم الواجهة فقط
     query = text("""
-        SELECT id, title, simplified_text, country, category_id, saudi_reference_id 
+        SELECT id, title, simplified_text, country, category_id, saudi_reference_id, source_url, article_number 
         FROM priority_legal_contents
     """)
     result = db.execute(query).fetchall()

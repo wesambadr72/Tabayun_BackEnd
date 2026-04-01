@@ -14,6 +14,14 @@ def get_categories(db: Session = Depends(get_db)):
     """جلب قائمة الأقسام"""
     return db.query(Category).all()
 
+@router.get("/countries", response_model=List[str])
+def get_available_countries(db: Session = Depends(get_db)):
+    """جلب قائمة بجميع الدول المتاحة في القوانين"""
+    # جلب الدول من جدول القوانين
+    countries = db.query(LegalContent.country).filter(LegalContent.country != "sa").distinct().all()
+    #  تحويل القائمة من مصفوفة Tuple إلى مصفوفة Strings بسيطة
+    return [c[0] for c in countries if c[0]]
+
 @router.get("/by-category/{category_id}", response_model=List[dict])
 def get_laws_by_category(
     category_id: int, 
@@ -24,7 +32,7 @@ def get_laws_by_category(
     
     # استعلام لجلب القوانين من الـ View مع تصفية حسب القسم وبلد المستخدم
     query = text("""
-        SELECT id, title, simplified_text, country, category_id, saudi_reference_id 
+        SELECT id, title, simplified_text, country, category_id, saudi_reference_id, source_url, article_number 
         FROM priority_legal_contents 
         WHERE category_id = :cat_id 
         AND country = :country
