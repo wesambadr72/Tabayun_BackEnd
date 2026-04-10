@@ -15,7 +15,7 @@ pytest
 httpx
 pgvector
 sentence-transformers
-google-generativeai
+google-genai
 resend
 scrapy
 numpy

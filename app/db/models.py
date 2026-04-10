@@ -51,7 +51,7 @@ class UserSettings(Base):
     user = relationship("User", back_populates="settings")
 
 class Category(Base):
-    """الأقسام القانونية (المرور، التجارة، الصحة...)"""
+    """الأقسام القانونية (المرور، العمل، ...)"""
     __tablename__ = "categories"
     
     id = Column(Integer, primary_key=True, index=True)

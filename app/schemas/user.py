@@ -37,6 +37,7 @@ class UserUpdate(BaseModel):
     language: Optional[str] = None
     password: Optional[str] = None
     email: Optional[EmailStr] = None
+    is_admin: Optional[bool] = None
 
 # ما يعود للواجهة (Response)
 class UserResponse(UserBase):
