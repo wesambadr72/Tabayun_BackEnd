@@ -50,6 +50,18 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
+# مخصص لمسار /me (الحصول على بيانات المستخدم الحالي)
+class CurrentUserResponse(BaseModel):
+    id: int
+    email: EmailStr
+    full_name: str
+    country: str
+    language: Optional[str]
+    is_admin: bool
+
+    class Config:
+        from_attributes = True
+
 # User Settings (Accessibility & Preferences)
 class UserSettingsBase(BaseModel):
     font_size: str = "medium"

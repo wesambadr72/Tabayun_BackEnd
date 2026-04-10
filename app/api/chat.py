@@ -20,11 +20,11 @@ async def chat_query(
     """
     chatbot = RAGChatbot(db)
     
-    # تحديد الدولة المفضلة للمستخدم لتصفية النتائج إذا لزم الأمر
-    country_filter = current_user.country if current_user.country else None
+    # إلغاء فلتر الدولة للسماح للذكاء الاصطناعي بالوصول لكافة القوانين (السعودية والأجنبية) للإجابة بدقة
+    country_filter = None
     
     # تحديد اللغة (افتراضياً العربية)
-    language = "ar" # يمكن تطويرها لجلبها من إعدادات المستخدم
+    language = "ar"
     
     result = await chatbot.ask(
         question=chat_in.message,

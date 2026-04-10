@@ -27,7 +27,7 @@ class VectorSearchService:
         query = self.db.query(LegalContent).filter(
             LegalContent.embedding.isnot(None),
             LegalContent.simplified_text != "",
-            LegalContent.is_live == True,
+            LegalContent.is_live == 1,
         )
 
         # 3. الفلاتر
@@ -45,7 +45,7 @@ class VectorSearchService:
         # 5. حساب التشابه (Cosine Similarity)
         similarities = []
         for law in all_laws:
-            if law.embedding:
+            if law.embedding is not None:
                 law_embedding = np.array(law.embedding)
                 query_emb = np.array(query_embedding)
 

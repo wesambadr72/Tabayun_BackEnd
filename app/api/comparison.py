@@ -57,3 +57,33 @@ def get_my_bookmarks(
 ):
     """جلب قائمة المفضلة الخاصة بالمستخدم"""
     return db.query(Bookmark).filter(Bookmark.user_id == current_user.id).all()
+
+@router.get("/{comparison_id}", response_model=dict)
+def get_comparison_detail(
+    comparison_id: int, 
+    db: Session = Depends(get_db)
+):
+    """جلب تفاصيل المقارنة الكاملة (للعرض في كرت المقارنة)"""
+    comparison = db.query(ComparativeLaw).filter(ComparativeLaw.id == comparison_id).first()
+    if not comparison:
+        raise HTTPException(status_code=404, detail="Comparison not found")
+    
+    return {
+        "id": comparison.id,
+        "title": comparison.saudi_content.title,
+        "saudi_law": {
+            "title": comparison.saudi_content.title,
+            "text": comparison.saudi_content.simplified_text,
+            "source_url": comparison.saudi_content.source_url,
+            "article_number": comparison.saudi_content.article_number
+        },
+        "foreign_law": {
+            "country": comparison.foreign_content.country,
+            "title": comparison.foreign_content.title,
+            "text": comparison.foreign_content.simplified_text,
+            "source_url": comparison.foreign_content.source_url,
+            "article_number": comparison.foreign_content.article_number
+        },
+        "summary": comparison.summary,
+        "category_id": comparison.saudi_content.category_id
+    }

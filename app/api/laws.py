@@ -28,14 +28,21 @@ def get_laws_by_category(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """جلب قوانين بلد المستخدم الذهبية (الحقول الأساسية فقط)"""
+    """جلب المقارنات الجاهزة (قوانين مشتركة) لهذا القسم وبلد المستخدم"""
     
-    # استعلام لجلب القوانين من الـ View مع تصفية حسب القسم وبلد المستخدم
+    # استعلام يجلب المقارنات التي تربط قانون سعودي بقانون من بلد المستخدم
+    # ويأخذ العنوان والوصف من القانون السعودي كمرجع
     query = text("""
-        SELECT id, title, simplified_text, country, category_id, saudi_reference_id, source_url, article_number 
-        FROM priority_legal_contents 
-        WHERE category_id = :cat_id 
-        AND country = :country
+        SELECT 
+            cl.id as id,
+            lc.title as title,
+            lc.simplified_text as description,
+            lc.article_number
+        FROM comparative_laws cl
+        JOIN legal_contents lc ON cl.saudi_law_id = lc.id
+        JOIN legal_contents fl ON cl.foreign_law_id = fl.id
+        WHERE lc.category_id = :cat_id 
+        AND fl.country = :country
     """)
     
     result = db.execute(query, {"cat_id": category_id, "country": current_user.country}).fetchall()

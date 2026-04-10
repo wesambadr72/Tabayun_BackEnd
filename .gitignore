@@ -73,6 +73,9 @@ laws_Singing_test/
 # Sphinx documentation
 docs/_build/
 
+# Project progress
+PROJECT_PROGRESS.md
+
 # PyBuilder
 .pybuilder/
 target/

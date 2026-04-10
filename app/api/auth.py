@@ -9,7 +9,10 @@ from app.core.security import (
     get_password_hash, get_current_user
 )
 from app.core.config import settings
-from app.schemas.user import UserCreate, UserResponse, Token, UserUpdate
+from app.schemas.user import (
+    UserCreate, UserResponse, Token, UserUpdate, 
+    CurrentUserResponse
+)
 
 router = APIRouter()
 
@@ -67,6 +70,12 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
         )
     return {"access_token": access_token, "token_type": "bearer"}
 
+
+@router.get("/me", response_model=CurrentUserResponse)
+def read_current_user(current_user: User = Depends(get_current_user)):
+    """الحصول على بيانات المستخدم الحالي"""
+    return current_user
+    
 @router.put("/profile", response_model=UserResponse)
 def update_profile(
     user_update: UserUpdate, 
