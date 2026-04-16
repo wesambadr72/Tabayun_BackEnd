@@ -50,13 +50,32 @@ def add_bookmark(
     db.refresh(new_bookmark)
     return new_bookmark
 
-@router.get("/bookmarks", response_model=List[BookmarkResponse])
+@router.get("/bookmarks", response_model=List[dict])
 def get_my_bookmarks(
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
     """جلب قائمة المفضلة الخاصة بالمستخدم"""
-    return db.query(Bookmark).filter(Bookmark.user_id == current_user.id).all()
+    bookmarks = db.query(Bookmark).filter(Bookmark.user_id == current_user.id).all()
+    result = []
+    for b in bookmarks:
+        comp = None
+        if b.comparison and b.comparison.saudi_content:
+            comp = {
+                "id": b.comparison.id,
+                "title": b.comparison.saudi_content.title,
+                "simplified_description": b.comparison.summary,
+                "category_id": b.comparison.saudi_content.category_id
+            }
+        
+        result.append({
+            "id": b.id,
+            "user_id": b.user_id,
+            "comparison_id": b.comparison_id,
+            "created_at": b.created_at,
+            "comparison": comp
+        })
+    return result
 
 @router.get("/{comparison_id}", response_model=dict)
 def get_comparison_detail(
