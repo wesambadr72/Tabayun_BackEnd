@@ -19,7 +19,7 @@ router = APIRouter()
 @router.post("/register", response_model=UserResponse)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     # التحقق من وجود الإيميل مسبقاً
-    user = db.query(User).filter(User.email == user_in.email).first()
+    user = db.query(User).filter(User.email.lower() == user_in.email.lower()).first()
     if user:
         raise HTTPException(
             status_code=400,
@@ -28,7 +28,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     
     # إنشاء المستخدم وتشفير كلمة المرور
     new_user = User(
-        email=user_in.email,
+        email=user_in.email.lower(),
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
         country=user_in.country,
