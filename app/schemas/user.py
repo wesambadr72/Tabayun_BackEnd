@@ -36,6 +36,7 @@ class UserUpdate(BaseModel):
     country: Optional[str] = None
     language: Optional[str] = None
     password: Optional[str] = None
+    current_password: Optional[str] = None
     email: Optional[EmailStr] = None
     is_admin: Optional[bool] = None
 

@@ -85,6 +85,27 @@ def update_profile(
     """تعديل بيانات الحساب للمستخدم المسجل حالياً"""
     update_data = user_update.model_dump(exclude_unset=True)
     
+    # التحقق من كلمة المرور لتغيير الايميل او الاسم
+    needs_password = False
+    if "email" in update_data and update_data["email"] != current_user.email:
+        needs_password = True
+    if "full_name" in update_data and update_data["full_name"] != current_user.full_name:
+        needs_password = True
+        
+    if needs_password:
+        if not user_update.current_password or not verify_password(user_update.current_password, current_user.hashed_password):
+            raise HTTPException(status_code=400, detail="كلمة المرور الحالية غير صحيحة يرجى التأكد منها")
+            
+    # التحقق من أن الإيميل الجديد غير مستخدم
+    if "email" in update_data and update_data["email"] != current_user.email:
+        existing_user = db.query(User).filter(User.email == update_data["email"]).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="البريد الإلكتروني الجديد مستخدم بالفعل")
+            
+    # إزالة current_password من الداتا حتى لا يتم حفظها بحقل غير موجود
+    if "current_password" in update_data:
+        update_data.pop("current_password")
+    
     # إذا أراد المستخدم تغيير كلمة المرور
     if "password" in update_data:
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
