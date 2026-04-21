@@ -22,7 +22,7 @@ class RAGPipeline:
 
         similar_laws = self.vector_search.search_similar_laws(
             question,
-            top_k=5,
+            top_k=7,
             country_filter=country_filter,
             section_filter=section_filter,
         )
@@ -49,7 +49,7 @@ class RAGPipeline:
         for idx, result in enumerate(results, 1):
             parts.append(
                 f"### مصدر {idx}: {result['country']} - {result['title']}\n"
-                f"{result['simplified_text']}"
+                f"{result['original_text']}"
             )
         return "\n\n".join(parts)
 
