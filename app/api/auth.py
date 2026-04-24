@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from app.db.database import get_db
@@ -19,7 +20,7 @@ router = APIRouter()
 @router.post("/register", response_model=UserResponse)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     # التحقق من وجود الإيميل مسبقاً
-    user = db.query(User).filter(User.email.lower() == user_in.email.lower()).first()
+    user = db.query(User).filter(func.lower(User.email) == user_in.email.lower()).first()
     if user:
         raise HTTPException(
             status_code=400,
@@ -45,7 +46,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=Token)
 def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
    # البحث عن المستخدم باستخدام الإيميل (الإيميل يُمرر في حقل username من فورم OAuth2)
-    user = db.query(User).filter(User.email == form_data.username).first()
+    user = db.query(User).filter(func.lower(User.email) == form_data.username.lower()).first()
     
     # التحقق من وجود المستخدم وتشابه كلمة المرور
     if not user or not verify_password(form_data.password, user.hashed_password):
@@ -98,7 +99,7 @@ def update_profile(
             
     # التحقق من أن الإيميل الجديد غير مستخدم
     if "email" in update_data and update_data["email"] != current_user.email:
-        existing_user = db.query(User).filter(User.email == update_data["email"]).first()
+        existing_user = db.query(User).filter(func.lower(User.email) == update_data["email"].lower()).first()
         if existing_user:
             raise HTTPException(status_code=400, detail="البريد الإلكتروني الجديد مستخدم بالفعل")
             
