@@ -61,6 +61,7 @@ class VectorSearchService:
                         "title": law.title,
                         "country": law.country,
                         "simplified_text": law.simplified_text,
+                        "original_text": law.original_text,
                         "source_url": law.source_url,
                     }
                 )
