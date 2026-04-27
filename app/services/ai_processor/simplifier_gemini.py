@@ -39,11 +39,18 @@ class LawSimplifier(GeminiService):
         target_lang = "Arabic" if language == "ar" else "English"
         category_name = law.category.name if law.category else "General"
         
-        # 1. جلب البرومبت من قاعدة البيانات (SystemConfig) إذا وجد
+        # 1. محاولة جلب البرومبت من قاعدة البيانات (SystemConfig)
         db_config = db.query(SystemConfig).filter(SystemConfig.key == "simplification_prompt").first()
-        base_prompt = db_config.value if db_config else self._get_default_prompt_template()
+        base_prompt_template = db_config.value if db_config else None
         
-        prompt = self._build_prompt_from_template(base_prompt, law.title, law.original_text, category_name, target_lang)
+        # بناء البرومبت النهائي (سيستخدم الافتراضي داخل الدالة إذا كان base_prompt_template هو None)
+        prompt = self._build_prompt(
+            base_prompt=base_prompt_template,
+            title=law.title,
+            law_text=law.original_text,
+            category=category_name,
+            target_lang=target_lang
+        )
 
         try:
             # Using response_schema to force structured output and enable response.parsed
@@ -95,12 +102,12 @@ class LawSimplifier(GeminiService):
             db.rollback()
             return {"error": str(e)}
 
-    def _build_prompt(self, title: str, law_text: str, category: str, target_lang: str, template: str = None) -> str:
-        """بناء البرومبت باستخدام قالب (Template) سواء من قاعدة البيانات أو الافتراضي"""
+    def _build_prompt(self, base_prompt: str, title: str, law_text: str, category: str, target_lang: str) -> str:
+        """بناء البرومبت باستخدام قالب (Template) سواء من قاعدة البيانات أو الافتراضي المكتوب هنا"""
         
-        # إذا لم يتم تمرير قالب، نستخدم القالب الافتراضي
-        if not template:
-            template = """
+        # إذا لم يتوفر قالب من قاعدة البيانات، نستخدم هذا البرومبت الافتراضي
+        if not base_prompt:
+            base_prompt = """
             Simplify this legal article for a regular person.
             Provide the output in {target_lang}.
 
@@ -113,17 +120,17 @@ class LawSimplifier(GeminiService):
             1. Summary: One or two simple and clear sentences summarizing the core rule.
             2. Punishment: Clear explanation of penalties if mentioned, otherwise write 'لا يوجد عقوبات'.
 
-        Constraints:
-        - Use friendly, everyday language.
-        - Focus on what the person MUST or MUST NOT do.
-        - Be extremely concise.
-        - Do not change the core meaning of the rule.
-        - Do not include any additional information.
-        - Do not include any explanations or notes.
-        - Respond strictly in JSON format.
-        """
+            Constraints:
+            - Use friendly, everyday language.
+            - Focus on what the person MUST or MUST NOT do.
+            - Be extremely concise.
+            - Do not change the core meaning of the rule.
+            - Do not include any additional information.
+            - Do not include any explanations or notes.
+            - Respond strictly in JSON format.
+            """
 
-        return template.format(
+        return base_prompt.format(
             title=title,
             law_text=law_text,
             category=category,
