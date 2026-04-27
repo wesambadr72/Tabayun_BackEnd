@@ -127,6 +127,8 @@ class AdminService:
         
         old_role = user.role
         user.role = new_role
+        # تحديث خاصية is_admin بناءً على الدور الجديد
+        user.is_admin = (new_role == "admin")
         db.commit()
         db.refresh(user)
         

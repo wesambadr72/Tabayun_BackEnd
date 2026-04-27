@@ -38,7 +38,6 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     current_password: Optional[str] = None
     email: Optional[EmailStr] = None
-    is_admin: Optional[bool] = None
 
 # ما يعود للواجهة (Response)
 class UserResponse(UserBase):

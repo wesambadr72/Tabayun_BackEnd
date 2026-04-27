@@ -12,23 +12,13 @@ from app.schemas.admin import (
 )
 from app.schemas.user import UserResponse
 from app.schemas.legal import LegalContent as LegalContentSchema, LegalContentCreate
-from app.core.security import get_current_user
+from app.core.security import get_current_user, check_admin
 
-router = APIRouter()
-
-# Middleware للتحقق من صلاحية الآدمن
-def check_admin(current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user doesn't have admin privileges",
-        )
-    return current_user
+router = APIRouter(dependencies=[Depends(check_admin)])
 
 @router.get("/stats", response_model=AdminDashboardStats)
 def get_dashboard_stats(
-    db: Session = Depends(get_db), 
-    current_admin: User = Depends(check_admin)
+    db: Session = Depends(get_db)
 ):
     """جلب إحصائيات لوحة التحكم"""
     return AdminService.get_dashboard_stats(db)
@@ -37,7 +27,6 @@ def get_dashboard_stats(
 @router.get("/logs", response_model=List[AuditLogResponse])
 def get_audit_logs(
     db: Session = Depends(get_db), 
-    current_admin: User = Depends(check_admin),
     limit: int = 100,
     offset: int = 0
 ):
