@@ -86,11 +86,9 @@ def update_profile(
     """تعديل بيانات الحساب للمستخدم المسجل حالياً"""
     update_data = user_update.model_dump(exclude_unset=True)
     
-    # التحقق من كلمة المرور لتغيير الايميل او الاسم
+    # التحقق من كلمة المرور لتغيير الايميل
     needs_password = False
     if "email" in update_data and update_data["email"] != current_user.email:
-        needs_password = True
-    if "full_name" in update_data and update_data["full_name"] != current_user.full_name:
         needs_password = True
         
     if needs_password:
@@ -126,3 +124,23 @@ def logout(current_user: User = Depends(get_current_user)):
     برمجياً، يمكننا هنا تسجيل العملية في الـ Audit Log إذا أردنا.
     """
     return {"message": "Successfully logged out"}
+
+@router.get("/check-email")
+def check_email(email: str, db: Session = Depends(get_db)):
+    """التحقق من توفر البريد الإلكتروني"""
+    user = db.query(User).filter(func.lower(User.email) == email.lower()).first()
+    return {"available": user is None}
+
+@router.post("/forgot-password")
+def forgot_password(email_data: dict, db: Session = Depends(get_db)):
+    """طلب استعادة كلمة المرور"""
+    email = email_data.get("email")
+    user = db.query(User).filter(func.lower(User.email) == email.lower()).first()
+    
+    # للأمان: دائماً نرجع رد ناجح حتى لو الايميل غير موجود لكي لا يتم تخمين الايميلات
+    if user:
+        # هنا يتم استدعاء خدمة ارسال الايميل
+        # notification_service.send_reset_password_email(email, token)
+        pass
+        
+    return {"message": "If the email exists, a reset link has been sent."}
