@@ -1,12 +1,11 @@
-# app/db/vector_search.py
+# app/services/vector_search.py
 from sqlalchemy.orm import Session
+from sqlalchemy import select, desc
 from app.db.models import LegalContent, Category
 from app.core.embeddings import generate_embedding
-import numpy as np
-
 
 class VectorSearchService:
-    """خدمة البحث في pgvector"""
+    """خدمة البحث في pgvector باستخدام استعلامات قاعدة البيانات المباشرة"""
 
     def __init__(self, db: Session):
         self.db = db
@@ -18,19 +17,27 @@ class VectorSearchService:
         country_filter: str | None = None,
         section_filter: str | None = None,
     ) -> list:
-        """البحث عن قوانين مشابهة باستخدام Vector Similarity"""
+        """
+        البحث عن قوانين مشابهة باستخدام Vector Similarity مباشرة في PostgreSQL.
+        يستخدم هذا التعديل مشغل المسافة (Distance Operator) لـ pgvector لضمان السرعة.
+        """
 
         # 1. توليد embedding للسؤال
         query_embedding = generate_embedding(query_text)
 
-        # 2. بناء الـ query
-        query = self.db.query(LegalContent).filter(
+        # 2. بناء الاستعلام الأساسي مع حساب المسافة (Cosine Distance)
+        # ملاحظة: cosine_distance = 1 - cosine_similarity
+        # لذا الترتيب التصاعدي للمسافة يعطينا الأكثر تشابهاً
+        
+        distance_query = LegalContent.embedding.cosine_distance(query_embedding).label("distance")
+        
+        query = self.db.query(LegalContent, distance_query).filter(
             LegalContent.embedding.isnot(None),
             LegalContent.simplified_text != "",
             LegalContent.is_live == 1,
         )
 
-        # 3. الفلاتر
+        # 3. تطبيق الفلاتر
         if country_filter:
             query = query.filter(LegalContent.country == country_filter)
 
@@ -39,34 +46,24 @@ class VectorSearchService:
             if category:
                 query = query.filter(LegalContent.category_id == category.id)
 
-        # 4. جلب النتائج
-        all_laws = query.all()
+        # 4. الترتيب حسب المسافة (الأقرب أولاً) وجلب النتائج
+        results = query.order_by("distance").limit(top_k).all()
 
-        # 5. حساب التشابه (Cosine Similarity)
-        similarities = []
-        for law in all_laws:
-            if law.embedding is not None:
-                law_embedding = np.array(law.embedding)
-                query_emb = np.array(query_embedding)
+        # 5. تنسيق النتائج للرد
+        formatted_results = []
+        for law, distance in results:
+            formatted_results.append(
+                {
+                    "law": law,
+                    "similarity": float(1 - distance), # تحويل المسافة إلى تشابه
+                    "id": law.id,
+                    "title": law.title,
+                    "country": law.country,
+                    "simplified_text": law.simplified_text,
+                    "original_text": law.original_text,
+                    "source_url": law.source_url,
+                }
+            )
 
-                similarity = np.dot(query_emb, law_embedding) / (
-                    np.linalg.norm(query_emb) * np.linalg.norm(law_embedding)
-                )
-
-                similarities.append(
-                    {
-                        "law": law,
-                        "similarity": float(similarity),
-                        "id": law.id,
-                        "title": law.title,
-                        "country": law.country,
-                        "simplified_text": law.simplified_text,
-                        "original_text": law.original_text,
-                        "source_url": law.source_url,
-                    }
-                )
-
-        # 6. ترتيب حسب التشابه
-        similarities.sort(key=lambda x: x["similarity"], reverse=True)
-        return similarities[:top_k]
+        return formatted_results
 

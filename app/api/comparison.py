@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.db.database import get_db
 from app.db.models import User, ComparativeLaw, Bookmark
-from app.services.ai_processor.comparator_gemini import LawComparator
 from app.schemas.user import BookmarkCreate, BookmarkResponse
 from app.core.security import get_current_user
 
@@ -15,8 +14,18 @@ def get_priority_comparisons(db: Session = Depends(get_db)):
     """جلب قائمة المقارنات الذهبية (الحقول الأساسية فقط)"""
     # جلب الحقول التي تهم الواجهة فقط
     query = text("""
-        SELECT id, title, simplified_text, country, category_id, saudi_reference_id, source_url, article_number 
-        FROM priority_legal_contents
+        SELECT
+            cl.id AS id,
+            lc.title AS title,
+            lc.simplified_text AS simplified_description,
+            cl.summary AS summary,
+            lc.category_id AS category_id,
+            fl.country AS foreign_country
+        FROM comparative_laws cl
+        JOIN legal_contents lc ON cl.saudi_law_id = lc.id
+        JOIN legal_contents fl ON cl.foreign_law_id = fl.id
+        ORDER BY COALESCE(lc.importance_score, 0) DESC, cl.id DESC
+        LIMIT 12
     """)
     result = db.execute(query).fetchall()
     return [dict(row._mapping) for row in result]

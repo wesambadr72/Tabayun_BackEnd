@@ -180,11 +180,11 @@ class Feedback(Base):
 class SearchHistory(Base):
     __tablename__ = "search_history"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     keywords = Column(String, nullable=False)
     user_country = Column(String, nullable=False)
     search_results = Column(Text, nullable=True)
-    search_time = Column(DateTime(timezone=True), server_default=func.now())
+    search_time = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     
     # Relationships
     user = relationship("User", back_populates="searches")
@@ -247,13 +247,13 @@ class Notification(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    action = Column(String) # e.g., "ADD_LAW", "DELETE_USER", "UPDATE_AI_CONFIG"
-    table_name = Column(String)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    action = Column(String, index=True) # e.g., "ADD_LAW", "DELETE_USER", "UPDATE_AI_CONFIG"
+    table_name = Column(String, index=True)
     record_id = Column(Integer, nullable=True)
     old_values = Column(JSON, nullable=True) 
     new_values = Column(JSON, nullable=True) 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     user = relationship("User", back_populates="audit_logs")
 

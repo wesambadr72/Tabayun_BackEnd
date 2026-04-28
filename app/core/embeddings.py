@@ -1,9 +1,10 @@
-from sentence_transformers import SentenceTransformer
 from functools import lru_cache
 from app.core.config import settings
 
 @lru_cache(maxsize=1)
 def get_embedding_model():
+    from sentence_transformers import SentenceTransformer
+
     # تنظيف اسم الموديل من أي علامات تنصيص
     model_name = settings.EMBEDDING_MODEL.strip('"').strip("'")
     

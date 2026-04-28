@@ -21,4 +21,4 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Tabayun API First Version", "docs": "/docs"}
+    return {"message": "Welcome to Tabayun API", "docs": "/docs"}
