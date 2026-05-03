@@ -6,6 +6,8 @@ from app.db.database import get_db
 from app.db.models import Category, LegalContent, User, Notification
 from app.schemas.legal import Category as CategorySchema, LegalContent as LegalContentSchema
 from app.core.security import get_current_user
+from app.services.translation_service import translation_service
+from typing import List, Optional
 
 router = APIRouter()
 
@@ -23,8 +25,9 @@ def get_available_countries(db: Session = Depends(get_db)):
     return [c[0] for c in countries if c[0]]
 
 @router.get("/by-category/{category_id}", response_model=List[dict])
-def get_laws_by_category(
+async def get_laws_by_category(
     category_id: int, 
+    lang: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -46,7 +49,14 @@ def get_laws_by_category(
     """)
     
     result = db.execute(query, {"cat_id": category_id, "country": current_user.country}).fetchall()
-    return [dict(row._mapping) for row in result]
+    laws = [dict(row._mapping) for row in result]
+
+    # الترجمة فقط إذا كانت لغة المستخدم إنجليزية أو تم طلبها صراحة عبر الرابط
+    # إذا كانت اللغة عربية أو غير محددة، سيعود المحتوى الأصلي من قاعدة البيانات فوراً
+    if (current_user.language == "en" or lang == "en") and lang != "ar":
+        laws = await translation_service.translate_comparison_list(laws)
+
+    return laws
 
 @router.post("/subscribe/{category_id}")
 def subscribe_to_category(
@@ -83,3 +93,17 @@ def get_my_notifications(
         return notifications
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/saudi-priority", response_model=List[dict])
+def get_saudi_priority_laws(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """جلب كافة القوانين السعودية الموجودة في الـ View (الأولوية)"""
+    query = text("""
+        SELECT id, title, simplified_text as description, country, category_id, source_url, article_number 
+        FROM priority_legal_contents
+        WHERE country = 'sa'
+    """)
+    result = db.execute(query).fetchall()
+    return [dict(row._mapping) for row in result]

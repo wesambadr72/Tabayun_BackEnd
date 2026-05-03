@@ -17,6 +17,7 @@ httpx
 pgvector
 sentence-transformers
 google-genai
+deep-translator
 resend
 scrapy
 numpy

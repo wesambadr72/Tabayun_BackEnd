@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import json
 
 from app.db.database import get_db
@@ -8,12 +8,14 @@ from app.db.models import User, SearchHistory, ComparativeLaw, LegalContent
 from app.core.security import get_current_user
 from app.services.vector_search import VectorSearchService
 from app.schemas.interaction import SearchHistory as SearchHistorySchema
+from app.services.translation_service import translation_service
 
 router = APIRouter()
 
 @router.get("/query", response_model=List[dict])
 async def search_laws(
     q: str = Query(..., min_length=2, description="كلمات البحث"),
+    lang: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -66,6 +68,10 @@ async def search_laws(
     db.add(new_search)
     db.commit()
     
+    # الترجمة فقط إذا كانت لغة المستخدم إنجليزية أو تم طلبها صراحة عبر الرابط
+    if (current_user.language == "en" or lang == "en") and lang != "ar":
+        search_results = await translation_service.translate_comparison_list(search_results)
+        
     return search_results
 
 @router.get("/history", response_model=List[SearchHistorySchema])

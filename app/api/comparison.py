@@ -6,11 +6,16 @@ from app.db.database import get_db
 from app.db.models import User, ComparativeLaw, Bookmark
 from app.schemas.user import BookmarkCreate, BookmarkResponse
 from app.core.security import get_current_user
+from app.services.translation_service import translation_service
 
 router = APIRouter()
 
 @router.get("/priority", response_model=List[dict])
-def get_priority_comparisons(db: Session = Depends(get_db)):
+async def get_priority_comparisons(
+    lang: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """جلب قائمة المقارنات الذهبية (الحقول الأساسية فقط)"""
     # جلب الحقول التي تهم الواجهة فقط
     query = text("""
@@ -28,7 +33,13 @@ def get_priority_comparisons(db: Session = Depends(get_db)):
         LIMIT 12
     """)
     result = db.execute(query).fetchall()
-    return [dict(row._mapping) for row in result]
+    laws = [dict(row._mapping) for row in result]
+
+    # الترجمة فقط إذا كانت لغة المستخدم إنجليزية أو تم طلبها صراحة عبر الرابط
+    if (current_user.language == "en" or lang == "en") and lang != "ar":
+        laws = await translation_service.translate_comparison_list(laws)
+
+    return laws
 
 @router.post("/bookmark", response_model=BookmarkResponse)
 def add_bookmark(
@@ -87,16 +98,18 @@ def get_my_bookmarks(
     return result
 
 @router.get("/{comparison_id}", response_model=dict)
-def get_comparison_detail(
+async def get_comparison_detail(
     comparison_id: int, 
-    db: Session = Depends(get_db)
+    lang: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """جلب تفاصيل المقارنة الكاملة (للعرض في كرت المقارنة)"""
     comparison = db.query(ComparativeLaw).filter(ComparativeLaw.id == comparison_id).first()
     if not comparison:
         raise HTTPException(status_code=404, detail="Comparison not found")
     
-    return {
+    data = {
         "id": comparison.id,
         "title": comparison.saudi_content.title,
         "saudi_law": {
@@ -115,3 +128,9 @@ def get_comparison_detail(
         "summary": comparison.summary,
         "category_id": comparison.saudi_content.category_id
     }
+
+    # الترجمة فقط إذا كانت لغة المستخدم إنجليزية أو تم طلبها صراحة عبر الرابط
+    if (current_user.language == "en" or lang == "en") and lang != "ar":
+        data = await translation_service.translate_comparison_detail(data)
+
+    return data
