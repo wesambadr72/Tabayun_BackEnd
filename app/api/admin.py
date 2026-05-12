@@ -33,6 +33,35 @@ def get_audit_logs(
     """جلب تاريخ التعديلات والرقابة"""
     return AdminService.get_audit_logs(db, limit, offset)
 
+# --- جلب القوائم (Listing Endpoints) ---
+
+@router.get("/laws", response_model=List[LegalContentSchema])
+def list_laws(
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None
+):
+    """جلب قائمة القوانين مع البحث"""
+    return AdminService.get_all_laws(db, skip, limit, search)
+
+@router.get("/users", response_model=List[UserResponse])
+def list_users(
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None
+):
+    """جلب قائمة المستخدمين مع البحث"""
+    return AdminService.get_all_users(db, skip, limit, search)
+
+@router.get("/configs", response_model=List[SystemConfigResponse])
+def list_configs(
+    db: Session = Depends(get_db)
+):
+    """جلب كافة إعدادات النظام"""
+    return AdminService.get_all_configs(db)
+
 # --- إدارة اعدادات النظام  ---
 @router.post("/config", response_model=SystemConfigResponse)
 def update_system_config(
@@ -68,6 +97,18 @@ async def add_law(
         return await AdminService.add_law(db, current_admin.id, law_in.model_dump())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/laws/{law_id}", response_model=LegalContentSchema)
+def get_law(
+    law_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(check_admin)
+):
+    """جلب تفاصيل قانون واحد"""
+    law = AdminService.get_law_by_id(db, law_id)
+    if not law:
+        raise HTTPException(status_code=404, detail="Law not found")
+    return law
 
 @router.put("/laws/{law_id}", response_model=LegalContentSchema)
 def update_law(

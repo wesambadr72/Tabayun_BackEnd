@@ -94,6 +94,40 @@ class AdminService:
         )
         return True
 
+    # --- جلب البيانات للقوائم (Listing Methods) ---
+
+    @staticmethod
+    def get_law_by_id(db: Session, law_id: int) -> Optional[LegalContent]:
+        """جلب تفاصيل قانون واحد باستخدام ID"""
+        return db.query(LegalContent).filter(LegalContent.id == law_id).first()
+
+    @staticmethod
+    def get_all_laws(db: Session, skip: int = 0, limit: int = 100, search: str = None) -> List[LegalContent]:
+        """جلب قائمة القوانين للآدمن مع البحث"""
+        query = db.query(LegalContent)
+        if search:
+            query = query.filter(
+                (LegalContent.title.ilike(f"%{search}%")) | 
+                (LegalContent.country.ilike(f"%{search}%"))
+            )
+        return query.order_by(LegalContent.created_at.desc()).offset(skip).limit(limit).all()
+
+    @staticmethod
+    def get_all_users(db: Session, skip: int = 0, limit: int = 100, search: str = None) -> List[User]:
+        """جلب قائمة المستخدمين للآدمن مع البحث"""
+        query = db.query(User)
+        if search:
+            query = query.filter(
+                (User.full_name.ilike(f"%{search}%")) | 
+                (User.email.ilike(f"%{search}%"))
+            )
+        return query.order_by(User.id.asc()).offset(skip).limit(limit).all()
+
+    @staticmethod
+    def get_all_configs(db: Session) -> List[SystemConfig]:
+        """جلب كافة إعدادات النظام"""
+        return db.query(SystemConfig).all()
+
     #  إدارة المستخدمين (User Management)
 
     @staticmethod
