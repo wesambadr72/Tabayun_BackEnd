@@ -10,9 +10,15 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "secret"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_HOURS: int = 24
     
-    ANTHROPIC_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL_NAME: str = ""
+    EMBEDDING_MODEL: str = ""
     OPENAI_API_KEY: str = ""
+
+    
+    RESEND_API_KEY: str = ""
     LOG_LEVEL: str = "INFO"
 
     class Config:

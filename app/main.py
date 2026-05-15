@@ -6,7 +6,6 @@ from app.core.config import settings
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
 # Set all CORS enabled origins
@@ -22,4 +21,4 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Tabayun API First Version", "docs": "/docs"}
+    return {"message": "Welcome to Tabayun API", "docs": "/docs"}
