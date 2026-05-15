@@ -1,146 +1,154 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from datetime import timedelta
+
+from app.core.config import settings
+from app.core.security import create_access_token, get_current_user, get_password_hash, verify_password
 from app.db.database import get_db
 from app.db.models import User
-from app.core.security import (
-    create_access_token, verify_password, 
-    get_password_hash, get_current_user
-)
-from app.core.config import settings
-from app.schemas.user import (
-    UserCreate, UserResponse, Token, UserUpdate, 
-    CurrentUserResponse
+from app.schemas.user import CurrentUserResponse, Token, UserCreate, UserResponse, UserUpdate
+from app.services.demo_fallback import (
+    authenticate_user as authenticate_demo_user,
+    is_email_available as is_demo_email_available,
+    register_user as register_demo_user,
 )
 
 router = APIRouter()
 
+
 @router.post("/register", response_model=UserResponse)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    # التحقق من وجود الإيميل مسبقاً
-    user = db.query(User).filter(func.lower(User.email) == user_in.email.lower()).first()
-    if user:
-        raise HTTPException(
-            status_code=400,
-            detail="The user with this email already exists in the system.",
+    try:
+        user = db.query(User).filter(func.lower(User.email) == user_in.email.lower()).first()
+        if user:
+            raise HTTPException(
+                status_code=400,
+                detail="The user with this email already exists in the system.",
+            )
+
+        new_user = User(
+            email=user_in.email.lower(),
+            hashed_password=get_password_hash(user_in.password),
+            full_name=user_in.full_name,
+            country=user_in.country,
+            language=user_in.language,
+            role="user",
+            is_active=1,
+            is_verified=0,
         )
-    
-    # إنشاء المستخدم وتشفير كلمة المرور
-    new_user = User(
-        email=user_in.email.lower(),
-        hashed_password=get_password_hash(user_in.password),
-        full_name=user_in.full_name,
-        country=user_in.country,
-        language=user_in.language,
-        role="user", # افتراضي
-        is_active=1, # 1 for active
-        is_verified=0 # 0 for not verified
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return new_user
+    except SQLAlchemyError:
+        try:
+            return register_demo_user(user_in)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
 
 @router.post("/login", response_model=Token)
 def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
-   # البحث عن المستخدم باستخدام الإيميل (الإيميل يُمرر في حقل username من فورم OAuth2)
-    user = db.query(User).filter(func.lower(User.email) == form_data.username.lower()).first()
-    
-    # التحقق من وجود المستخدم وتشابه كلمة المرور
-    if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    elif not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
+    try:
+        user = db.query(User).filter(func.lower(User.email) == form_data.username.lower()).first()
+        if not user or not verify_password(form_data.password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        if not user.is_active:
+            raise HTTPException(status_code=400, detail="Inactive user")
 
-    # إنشاء التوكن
+        email = user.email
+        is_admin = user.is_admin
+    except SQLAlchemyError:
+        user = authenticate_demo_user(form_data.username, form_data.password)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        email = user["email"]
+        is_admin = user["is_admin"]
+
     access_token_expires = timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
-    # Include admin status in token payload if user is admin
-    if user.is_admin:
-        access_token = create_access_token(
-            data={"sub": user.email, "admin": True}, expires_delta=access_token_expires
-        )
-    else:
-        access_token = create_access_token(
-            data={"sub": user.email}, expires_delta=access_token_expires
-        )
+    token_data = {"sub": email}
+    if is_admin:
+        token_data["admin"] = True
+
+    access_token = create_access_token(data=token_data, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.get("/me", response_model=CurrentUserResponse)
 def read_current_user(current_user: User = Depends(get_current_user)):
-    """الحصول على بيانات المستخدم الحالي"""
     return current_user
-    
+
+
 @router.put("/profile", response_model=UserResponse)
 def update_profile(
-    user_update: UserUpdate, 
-    db: Session = Depends(get_db), 
-    current_user: User = Depends(get_current_user)
+    user_update: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """تعديل بيانات الحساب للمستخدم المسجل حالياً"""
     update_data = user_update.model_dump(exclude_unset=True)
-    
-    # التحقق من كلمة المرور لتغيير الايميل
-    needs_password = False
-    if "email" in update_data and update_data["email"] != current_user.email:
-        needs_password = True
-        
+
+    needs_password = "email" in update_data and update_data["email"] != current_user.email
     if needs_password:
         if not user_update.current_password or not verify_password(user_update.current_password, current_user.hashed_password):
-            raise HTTPException(status_code=400, detail="كلمة المرور الحالية غير صحيحة يرجى التأكد منها")
-            
-    # التحقق من أن الإيميل الجديد غير مستخدم
-    if "email" in update_data and update_data["email"] != current_user.email:
-        existing_user = db.query(User).filter(func.lower(User.email) == update_data["email"].lower()).first()
-        if existing_user:
-            raise HTTPException(status_code=400, detail="البريد الإلكتروني الجديد مستخدم بالفعل")
-            
-    # إزالة current_password من الداتا حتى لا يتم حفظها بحقل غير موجود
-    if "current_password" in update_data:
-        update_data.pop("current_password")
-    
-    # إذا أراد المستخدم تغيير كلمة المرور
-    if "password" in update_data:
-        update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
-    
-    for field, value in update_data.items():
-        setattr(current_user, field, value)
-    
-    db.add(current_user)
-    db.commit()
-    db.refresh(current_user)
-    return current_user
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    try:
+        if "email" in update_data and update_data["email"] != current_user.email:
+            existing_user = db.query(User).filter(func.lower(User.email) == update_data["email"].lower()).first()
+            if existing_user:
+                raise HTTPException(status_code=400, detail="Email is already used")
+
+        update_data.pop("current_password", None)
+
+        if "password" in update_data:
+            update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
+
+        for field, value in update_data.items():
+            setattr(current_user, field, value)
+
+        db.add(current_user)
+        db.commit()
+        db.refresh(current_user)
+        return current_user
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="Database is not available in demo mode") from exc
+
 
 @router.post("/logout")
 def logout(current_user: User = Depends(get_current_user)):
-    """
-    في نظام JWT، الخروج يتم بمسح التوكن من جهة الفرونت إند.
-    برمجياً، يمكننا هنا تسجيل العملية في الـ Audit Log إذا أردنا.
-    """
     return {"message": "Successfully logged out"}
+
 
 @router.get("/check-email")
 def check_email(email: str, db: Session = Depends(get_db)):
-    """التحقق من توفر البريد الإلكتروني"""
-    user = db.query(User).filter(func.lower(User.email) == email.lower()).first()
-    return {"available": user is None}
+    try:
+        user = db.query(User).filter(func.lower(User.email) == email.lower()).first()
+        return {"available": user is None}
+    except SQLAlchemyError:
+        return {"available": is_demo_email_available(email)}
+
 
 @router.post("/forgot-password")
 def forgot_password(email_data: dict, db: Session = Depends(get_db)):
-    """طلب استعادة كلمة المرور"""
     email = email_data.get("email")
-    user = db.query(User).filter(func.lower(User.email) == email.lower()).first()
-    
-    # للأمان: دائماً نرجع رد ناجح حتى لو الايميل غير موجود لكي لا يتم تخمين الايميلات
-    if user:
-        # هنا يتم استدعاء خدمة ارسال الايميل
-        # notification_service.send_reset_password_email(email, token)
+    if not email:
+        return {"message": "If the email exists, a reset link has been sent."}
+
+    try:
+        db.query(User).filter(func.lower(User.email) == email.lower()).first()
+    except SQLAlchemyError:
         pass
-        
+
     return {"message": "If the email exists, a reset link has been sent."}

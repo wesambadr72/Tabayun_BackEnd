@@ -84,10 +84,12 @@ ipython_config.py
 
 # Environments
 .env
+.env.backup-*
 .venv
 venv/
 ENV/
 env/
+.demo_users.json
 
 # Logs
 logs/

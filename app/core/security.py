@@ -5,9 +5,11 @@ from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from app.core.config import settings
 from app.db.database import get_db
 from app.db.models import User
+from app.services.demo_fallback import get_user as get_demo_user
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
@@ -48,7 +50,10 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
         
-    user = db.query(User).filter(User.email == email).first()
+    try:
+        user = db.query(User).filter(User.email == email).first()
+    except SQLAlchemyError:
+        user = get_demo_user(email)
     if user is None:
         raise credentials_exception
     return user
