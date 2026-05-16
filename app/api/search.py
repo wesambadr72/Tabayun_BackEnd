@@ -26,20 +26,27 @@ async def search_laws(
     vector_search = VectorSearchService(db)
     
     # 1. القيام بالبحث المعنوي
-    # نمرر country_filter=None للسماح بالبحث في كل القوانين ثم ترتيب النتائج
     results = vector_search.search_similar_laws(query_text=q, top_k=10)
+    
+    law_ids = [item["id"] for item in results]
+    
+    # Batch fetch all relevant comparisons in a single query (Fixes N+1 issue)
+    comparisons = db.query(ComparativeLaw).filter(
+        (ComparativeLaw.saudi_law_id.in_(law_ids)) | 
+        (ComparativeLaw.foreign_law_id.in_(law_ids))
+    ).all()
+
+    # Map comparisons by law_id for fast lookup
+    law_to_comp = {}
+    for comp in comparisons:
+        law_to_comp[comp.saudi_law_id] = comp
+        law_to_comp[comp.foreign_law_id] = comp
     
     search_results = []
     
     for item in results:
         law = item["law"]
-        # البحث عن المقارنة المرتبطة بهذا القانون
-        # إذا كان القانون سعودياً، نبحث في saudi_law_id
-        # إذا كان أجنبياً، نبحث في foreign_law_id
-        comparison = db.query(ComparativeLaw).filter(
-            (ComparativeLaw.saudi_law_id == law.id) | 
-            (ComparativeLaw.foreign_law_id == law.id)
-        ).first()
+        comparison = law_to_comp.get(law.id)
         
         if comparison:
             # نتحقق إذا كانت هذه المقارنة تخص بلد المستخدم أو السعودية
