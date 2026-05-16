@@ -6,26 +6,59 @@ import copy
 
 class TranslationService:
     def __init__(self):
-        # نستخدم deep-translator لترجمة النصوص
-        pass
+        # In-memory cache for translations: {(text, target_lang): translated_text}
+        self._cache = {}
 
     async def translate_text(self, text: Union[str, List[str]], target_lang: str = "en") -> Union[str, List[str]]:
         """
-        ترجمة نص أو قائمة نصوص باستخدام deep-translator (مجاني ومتوافق).
+        ترجمة نص أو قائمة نصوص باستخدام deep-translator مع دعم للتخزين المؤقت (Caching).
         """
         if not text:
             return text
 
+        # Handle list input
+        if isinstance(text, list):
+            results = []
+            uncached_indices = []
+            uncached_texts = []
+
+            for i, t in enumerate(text):
+                cache_key = (t, target_lang)
+                if cache_key in self._cache:
+                    results.append(self._cache[cache_key])
+                else:
+                    results.append(None) # Placeholder
+                    uncached_indices.append(i)
+                    uncached_texts.append(t)
+
+            if uncached_texts:
+                try:
+                    translator = GoogleTranslator(source='auto', target=target_lang)
+                    translated_batch = await asyncio.to_thread(translator.translate_batch, uncached_texts)
+                    
+                    for i, translated_val in enumerate(translated_batch):
+                        idx = uncached_indices[i]
+                        original_text = uncached_texts[i]
+                        results[idx] = translated_val
+                        # Update cache
+                        self._cache[(original_text, target_lang)] = translated_val
+                except Exception as e:
+                    logger.error(f"DeepTranslator Batch Error: {str(e)}")
+                    # Fallback to original text for failed translations
+                    for i, idx in enumerate(uncached_indices):
+                        results[idx] = uncached_texts[i]
+            
+            return results
+
+        # Handle single string input
+        cache_key = (text, target_lang)
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
         try:
             translator = GoogleTranslator(source='auto', target=target_lang)
-            
-            def do_translate():
-                if isinstance(text, list):
-                    # ترجمة قائمة من النصوص
-                    return translator.translate_batch(text)
-                return translator.translate(text)
-
-            result = await asyncio.to_thread(do_translate)
+            result = await asyncio.to_thread(translator.translate, text)
+            self._cache[cache_key] = result
             return result
         except Exception as e:
             logger.error(f"DeepTranslator Error: {str(e)}")
