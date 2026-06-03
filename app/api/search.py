@@ -12,6 +12,7 @@ from app.services.translation_service import translation_service
 
 router = APIRouter()
 
+# البحث في القوانين والقارنات
 @router.get("/query", response_model=List[dict])
 async def search_laws(
     q: str = Query(..., min_length=2, description="كلمات البحث"),
@@ -81,6 +82,7 @@ async def search_laws(
         
     return search_results
 
+# الحصول على سجل عمليات البحث الخاصة بالمستخدم
 @router.get("/history", response_model=List[SearchHistorySchema])
 def get_search_history(
     db: Session = Depends(get_db),

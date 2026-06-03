@@ -19,7 +19,7 @@ from app.services.translation_service import translation_service
 
 router = APIRouter()
 
-
+# الحصول على قائمة التصنيفات
 @router.get("/categories", response_model=List[CategorySchema])
 def get_categories(db: Session = Depends(get_db)):
     try:
@@ -27,7 +27,7 @@ def get_categories(db: Session = Depends(get_db)):
     except SQLAlchemyError:
         return DEMO_CATEGORIES
 
-
+# الحصول على قائمة الدول المتاحة
 @router.get("/countries", response_model=List[str])
 def get_available_countries(db: Session = Depends(get_db)):
     try:
@@ -37,6 +37,7 @@ def get_available_countries(db: Session = Depends(get_db)):
         return DEMO_COUNTRIES
 
 
+# الحصول على قائمة المقارنات حسب التصنيف
 @router.get("/by-category/{category_id}", response_model=List[dict])
 async def get_laws_by_category(
     category_id: int,
@@ -71,6 +72,7 @@ async def get_laws_by_category(
     return laws
 
 
+# الحصول على قائمة التصنيفات المفضلة للمستخدم
 @router.post("/subscribe/{category_id}")
 def subscribe_to_category(
     category_id: int,
@@ -95,6 +97,7 @@ def subscribe_to_category(
         return {"message": "Subscribed successfully"}
 
 
+# الحصول على إشعارات المستخدم الحالي
 @router.get("/my-notifications")
 def get_my_notifications(
     db: Session = Depends(get_db),
@@ -112,6 +115,7 @@ def get_my_notifications(
         return []
 
 
+# الحصول على قائمة المقارنات المهمة للسعودية
 @router.get("/saudi-priority", response_model=List[dict])
 def get_saudi_priority_laws(
     db: Session = Depends(get_db),

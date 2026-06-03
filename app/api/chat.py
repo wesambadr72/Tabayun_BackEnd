@@ -8,6 +8,7 @@ from app.db.models import User
 
 router = APIRouter()
 
+
 @router.post("/query", response_model=SimpleChatResponse)
 async def chat_query(
     chat_in: ChatMessage, 

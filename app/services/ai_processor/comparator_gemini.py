@@ -45,10 +45,15 @@ class LawComparator(GeminiService):
             foreign_text=foreign_text,
             target_lang=target_lang
         )
-
+# مقارنة بين قانوني من قاعدة البيانات
     async def compare_by_ids(self, saudi_law_id: int, foreign_law_id: int, db: Session, language: str = "ar") -> dict:
         """
-        Fetches laws by ID from the database, compares them, and saves the result.
+        مقارنة بين قانوني من قاعدة البيانات
+        @param saudi_law_id: ID of the Saudi law to compare
+        @param foreign_law_id: ID of the foreign law to compare
+        @param db: SQLAlchemy session
+        @param language: Language of the comparison (default Arabic)
+        @return: Dictionary with comparison results
         """
         try:
             from google.genai import types

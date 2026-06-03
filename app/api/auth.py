@@ -19,7 +19,7 @@ from app.services.demo_fallback import (
 
 router = APIRouter()
 
-
+#إضافة مستخدم جديد
 @router.post("/register", response_model=UserResponse)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     try:
@@ -50,7 +50,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-
+#تسجيل الدخول
 @router.post("/login", response_model=Token)
 def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
     try:
@@ -85,12 +85,13 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
     access_token = create_access_token(data=token_data, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 
-
+    # الحصول على بيانات المستخدم الحالي
 @router.get("/me", response_model=CurrentUserResponse)
 def read_current_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+#تحديث بيانات المستخدم
 @router.put("/profile", response_model=UserResponse)
 def update_profile(
     user_update: UserUpdate,
@@ -125,12 +126,13 @@ def update_profile(
     except SQLAlchemyError as exc:
         raise HTTPException(status_code=503, detail="Database is not available in demo mode") from exc
 
-
+    # تسجيل الخروج
 @router.post("/logout")
 def logout(current_user: User = Depends(get_current_user)):
     return {"message": "Successfully logged out"}
 
 
+#تحقق من وجود البريد الإلكتروني
 @router.get("/check-email")
 def check_email(email: str, db: Session = Depends(get_db)):
     try:
@@ -140,6 +142,7 @@ def check_email(email: str, db: Session = Depends(get_db)):
         return {"available": is_demo_email_available(email)}
 
 
+#استعادة كلمة المرور
 @router.post("/forgot-password")
 def forgot_password(email_data: dict, db: Session = Depends(get_db)):
     email = email_data.get("email")

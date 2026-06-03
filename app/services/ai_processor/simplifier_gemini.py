@@ -29,7 +29,11 @@ class LawSimplifier(GeminiService):
 
     async def simplify(self, law_id: int, db: Session, language: str = "ar") -> dict:
         """
-        Main method to simplify legal text and save to DB.
+       العملية الرئيسية لتبسيط النصوص القانونية
+        @param law_id: ID of the law to simplify
+        @param db: SQLAlchemy session
+        @param language: Language of the simplification (default Arabic)
+        @return: Dictionary with simplified text and punishment
         """
         
         law = db.query(LegalContent).filter(LegalContent.id == law_id).first()

@@ -18,7 +18,7 @@ from app.services.translation_service import translation_service
 
 router = APIRouter()
 
-
+# الحصول على قائمة المقارنات المهمة
 @router.get("/priority", response_model=List[dict])
 async def get_priority_comparisons(
     lang: Optional[str] = None,
@@ -54,6 +54,7 @@ async def get_priority_comparisons(
     return laws
 
 
+# إضافة المقارنة إلى قائمة المفضلة للمستخدم
 @router.post("/bookmark", response_model=BookmarkResponse)
 def add_bookmark(
     bookmark_in: BookmarkCreate,
@@ -89,7 +90,7 @@ def add_bookmark(
             "created_at": datetime.now(timezone.utc),
         }
 
-
+# الحصول على قائمة المفضلة للمستخدم
 @router.get("/bookmarks", response_model=List[dict])
 def get_my_bookmarks(
     db: Session = Depends(get_db),
@@ -122,6 +123,7 @@ def get_my_bookmarks(
         return []
 
 
+# الحصول على تفاصيل المقارنة المحددة
 @router.get("/{comparison_id}", response_model=dict)
 async def get_comparison_detail(
     comparison_id: int,

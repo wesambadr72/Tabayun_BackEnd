@@ -6,7 +6,7 @@ from app.utils.helpers import clean_and_parse_json
 import json
 
 class LawRanker(GeminiService):
-    """Expert for evaluating the importance of legal articles for the public and visitors"""
+    """نظام لتقييم القوانين الاكثر اهمية في قاعدة البيانات"""
 
     def _build_rank_prompt(self, law_title: str, law_text: str, category: str, template: str = None) -> str:
         """بناء البرومبت باستخدام قالب (Template) سواء من قاعدة البيانات أو الافتراضي"""
@@ -35,7 +35,7 @@ class LawRanker(GeminiService):
             law_text=law_text,
             category=category
         )
-
+#  عملية تقييم القوانين من قاعدة البيانات
     async def rank_law(self, db: Session, law_id: int) -> dict:
         law = db.query(LegalContent).filter(LegalContent.id == law_id).first()
         if not law: return {"error": "Law not found"}
