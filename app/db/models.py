@@ -243,6 +243,7 @@ class Notification(Base):
     category = relationship("Category", back_populates="notifications")
     recipient = relationship("User", foreign_keys=[recipient_id], back_populates="received_notifications")
     sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_notifications")
+    target_user = relationship("User", foreign_keys=[target_user_id])
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"

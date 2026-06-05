@@ -194,7 +194,23 @@ def get_all_notifications(
     offset: int = 0
 ):
     """جلب كافة الإشعارات المرسلة من قبل الآدمن"""
-    return db.query(NotificationModel).order_by(NotificationModel.created_at.desc()).limit(limit).offset(offset).all()
+    notifications = db.query(NotificationModel).order_by(NotificationModel.created_at.desc()).limit(limit).offset(offset).all()
+    
+    # تحويل البيانات لإضافة اسم المستخدم يدوياً إذا لزم الأمر
+    result = []
+    for n in notifications:
+        n_dict = {
+            "id": n.id,
+            "title": n.title,
+            "message": n.message,
+            "target_user_id": n.target_user_id,
+            "target_user_name": n.target_user.full_name if n.target_user else None,
+            "is_broadcast": n.is_broadcast,
+            "created_at": n.created_at
+        }
+        result.append(n_dict)
+        
+    return result
 
 @router.delete("/notifications/{notif_id}")
 def delete_notification(
@@ -208,6 +224,21 @@ def delete_notification(
     db.delete(notif)
     db.commit()
     return {"message": "Notification deleted successfully"}
+
+@router.post("/notifications/bulk-delete")
+def bulk_delete_notifications(
+    notif_ids: List[int],
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(check_admin)
+):
+    """حذف مجموعة إشعارات مرسلة"""
+    notifs = db.query(NotificationModel).filter(NotificationModel.id.in_(notif_ids)).all()
+    deleted_count = 0
+    for notif in notifs:
+        db.delete(notif)
+        deleted_count += 1
+    db.commit()
+    return {"message": f"Successfully deleted {deleted_count} notifications"}
 
 @router.post("/notifications")
 async def send_notification(

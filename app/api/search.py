@@ -76,8 +76,8 @@ async def search_laws(
     db.add(new_search)
     db.commit()
     
-    # الترجمة فقط إذا كانت لغة المستخدم إنجليزية أو تم طلبها صراحة عبر الرابط
-    if (current_user.language == "en" or lang == "en") and lang != "ar":
+    # 3. الترجمة فقط إذا تم طلب اللغة الإنجليزية
+    if lang == "en":
         search_results = await translation_service.translate_comparison_list(search_results)
         
     return search_results

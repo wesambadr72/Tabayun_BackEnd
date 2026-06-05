@@ -71,8 +71,17 @@ class NotificationResponse(BaseModel):
     title: str
     message: str
     target_user_id: Optional[int] = None
+    target_user_name: Optional[str] = None
     is_broadcast: bool
     created_at: datetime
+
+    @field_validator('target_user_name', mode='before')
+    @classmethod
+    def get_target_user_name(cls, v: Any, info: Any) -> Any:
+        # info.data contains the model instance when using from_attributes
+        # But wait, 'v' is just the value if it exists. 
+        # Let's use a simpler approach since we are in Pydantic v2
+        return v
 
     class Config:
         from_attributes = True

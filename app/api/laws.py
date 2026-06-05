@@ -87,7 +87,8 @@ async def get_laws_by_category(
     except SQLAlchemyError:
         return get_demo_comparisons_by_category(category_id, target_country)
 
-    if (current_user.language == "en" or lang == "en") and lang != "ar":
+    # الترجمة فقط إذا تم طلب اللغة الإنجليزية
+    if lang == "en":
         laws = await translation_service.translate_comparison_list(laws)
 
     return laws
@@ -138,6 +139,34 @@ def get_my_notifications(
         return notifications
     except SQLAlchemyError:
         return []
+
+
+# تحديث حالة الإشعار إلى مقروء
+@router.post("/notifications/{notif_id}/read")
+def mark_notification_as_read(
+    notif_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        notification = (
+            db.query(Notification)
+            .filter(Notification.id == notif_id)
+            .filter(
+                (Notification.recipient_id == current_user.id) | 
+                (Notification.target_user_id == current_user.id) | 
+                (Notification.is_broadcast == True)
+            )
+            .first()
+        )
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        
+        notification.is_read = 1
+        db.commit()
+        return {"message": "Notification marked as read"}
+    except SQLAlchemyError:
+        raise HTTPException(status_code=500, detail="Database error")
 
 
 # الحصول على قائمة المقارنات المهمة للسعودية
