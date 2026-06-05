@@ -18,12 +18,14 @@ class AdminService:
         total_countries = db.query(func.count(distinct(LegalContent.country))).scalar() or 0
         total_comparisons = db.query(func.count(ComparativeLaw.id)).scalar() or 0
         total_users = db.query(func.count(User.id)).scalar() or 0
+        total_categories = db.query(func.count(Category.id)).scalar() or 0
         
         return AdminDashboardStats(
             total_laws=total_laws,
             total_countries=total_countries,
             total_comparisons=total_comparisons,
-            total_users=total_users
+            total_users=total_users,
+            total_categories=total_categories
         )
 
     #  إدارة القوانين (Law Management)
@@ -31,21 +33,77 @@ class AdminService:
     @staticmethod
     async def add_law(db: Session, admin_id: int, law_data: Dict[str, Any]) -> LegalContent:
         """إضافة قانون جديد وإشعار المشتركين"""
-        new_law = LegalContent(**law_data)
-        db.add(new_law)
-        db.commit()
-        db.refresh(new_law)
+        # Mapping frontend fields to backend fields
+        mapped_data = {
+            "title": law_data.get("title"),
+            "country": law_data.get("country"),
+            "category_id": law_data.get("category_id"),
+            "original_text": law_data.get("text") or law_data.get("original_text") or "",
+            "simplified_text": law_data.get("simplified_text") or "",
+            "article_number": law_data.get("article_number"),
+            "source_url": law_data.get("source_url"),
+            "aria_label": law_data.get("simplified_description") or law_data.get("aria_label"),
+            "alt_text": law_data.get("keywords") or law_data.get("alt_text"),
+            "importance_score": 0,
+            "is_live": 1
+        }
         
-        # تسجيل العملية
-        AdminService.log_action(
-            db, admin_id, "ADD_LAW", "legal_contents", 
-            new_law.id, None, law_data
-        )
+        # Remove None values to let DB defaults work
+        final_data = {k: v for k, v in mapped_data.items() if v is not None}
+        
+        try:
+            # التحقق مما إذا كان العنوان موجوداً مسبقاً لتجنب التكرار في حال إعادة المحاولة
+            existing = db.query(LegalContent).filter(
+                LegalContent.title == final_data["title"],
+                LegalContent.country == final_data["country"]
+            ).first()
+            
+            if existing:
+                new_law = existing
+            else:
+                new_law = LegalContent(**final_data)
+                db.add(new_law)
+                db.commit()
+                db.refresh(new_law)
+            
+            # إذا كان قانوناً أجنبياً وله مرجع سعودي، قم بإنشاء مقارنة تلقائياً
+            saudi_ref_id = law_data.get("saudi_reference_id")
+            if saudi_ref_id and final_data.get("country", "").lower() != "sa":
+                # التأكد من وجود القانون السعودي
+                saudi_law = db.query(LegalContent).filter(LegalContent.id == saudi_ref_id).first()
+                if saudi_law:
+                    # التأكد من عدم وجود مقارنة مسبقة
+                    existing_comp = db.query(ComparativeLaw).filter(
+                        ComparativeLaw.saudi_law_id == saudi_ref_id,
+                        ComparativeLaw.foreign_law_id == new_law.id
+                    ).first()
+                    
+                    if not existing_comp:
+                        comparison = ComparativeLaw(
+                            saudi_law_id=saudi_ref_id,
+                            foreign_law_id=new_law.id,
+                            summary=new_law.simplified_text[:200]
+                        )
+                        db.add(comparison)
+                        db.commit()
 
-        # استدعاء منطق الإشعارات (منفصل)
-        await AdminService._trigger_law_notifications(db, new_law)
-        
-        return new_law
+            # تسجيل العملية
+            AdminService.log_action(
+                db, admin_id, "ADD_LAW", "legal_contents", 
+                new_law.id, None, final_data
+            )
+
+            # استدعاء منطق الإشعارات (منفصل)
+            try:
+                await AdminService._trigger_law_notifications(db, new_law)
+            except Exception as e:
+                print(f"Notification error: {e}")
+            
+            return new_law
+        except Exception as e:
+            db.rollback()
+            print(f"Error in add_law: {str(e)}") # للتشخيص
+            raise e
 
     @staticmethod
     async def _trigger_law_notifications(db: Session, law: LegalContent):
@@ -56,23 +114,58 @@ class AdminService:
 
     @staticmethod
     def update_law(db: Session, admin_id: int, law_id: int, update_data: Dict[str, Any]) -> Optional[LegalContent]:
-        """تعديل قانون موجود"""
+        """تعديل قانون موجود وتحديث المقارنة إذا لزم الأمر"""
         law = db.query(LegalContent).filter(LegalContent.id == law_id).first()
         if not law:
             return None
         
-        old_values = {column.name: getattr(law, column.name) for column in law.__table__.columns if column.name in update_data}
+        # استخراج المرجع السعودي قبل الحذف من البيانات المرسلة للقاعدة
+        saudi_ref_id = update_data.get("saudi_reference_id")
         
-        for key, value in update_data.items():
+        # تنظيف البيانات (Mapping)
+        mapped_data = {
+            "title": update_data.get("title"),
+            "country": update_data.get("country"),
+            "category_id": update_data.get("category_id"),
+            "original_text": update_data.get("text") or update_data.get("original_text"),
+            "simplified_text": update_data.get("simplified_text"),
+            "article_number": update_data.get("article_number"),
+            "source_url": update_data.get("source_url"),
+            "aria_label": update_data.get("simplified_description") or update_data.get("aria_label"),
+            "alt_text": update_data.get("keywords") or update_data.get("alt_text")
+        }
+        
+        # تحديث الحقول الموجودة فقط
+        final_update = {k: v for k, v in mapped_data.items() if v is not None}
+        
+        old_values = {column.name: getattr(law, column.name) for column in law.__table__.columns if column.name in final_update}
+        
+        for key, value in final_update.items():
             setattr(law, key, value)
         
         db.commit()
         db.refresh(law)
+
+        # تحديث أو إنشاء المقارنة تلقائياً
+        if saudi_ref_id and law.country.lower() != "sa":
+            # التحقق مما إذا كانت هناك مقارنة موجودة
+            existing_comp = db.query(ComparativeLaw).filter(ComparativeLaw.foreign_law_id == law.id).first()
+            if existing_comp:
+                existing_comp.saudi_law_id = saudi_ref_id
+                existing_comp.summary = law.simplified_text[:200]
+            else:
+                new_comp = ComparativeLaw(
+                    saudi_law_id=saudi_ref_id,
+                    foreign_law_id=law.id,
+                    summary=law.simplified_text[:200]
+                )
+                db.add(new_comp)
+            db.commit()
         
         # تسجيل العملية
         AdminService.log_action(
             db, admin_id, "UPDATE_LAW", "legal_contents", 
-            law.id, old_values, update_data
+            law.id, old_values, final_update
         )
         return law
 
@@ -302,8 +395,10 @@ class AdminService:
     def send_notification(db: Session, admin_id: int, title: str, content: str, target_user_id: int = None) -> Notification:
         """إرسال إشعار لمستخدم أو للجميع"""
         notification = Notification(
+            sender_id=admin_id,
+            recipient_id=target_user_id,
             title=title,
-            content=content,
+            message=content,
             is_broadcast=(target_user_id is None),
             target_user_id=target_user_id
         )
@@ -322,8 +417,9 @@ class AdminService:
 
     @staticmethod
     def get_audit_logs(db: Session, limit: int = 100, offset: int = 0) -> List[AuditLog]:
-        """جلب تاريخ التعديلات"""
-        return db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit).offset(offset).all()
+        """جلب تاريخ التعديلات مع بيانات المستخدم"""
+        from sqlalchemy.orm import joinedload
+        return db.query(AuditLog).options(joinedload(AuditLog.user)).order_by(AuditLog.created_at.desc()).limit(limit).offset(offset).all()
 
     #  دالة مساعدة للتسجيل (Logging Helper)
 

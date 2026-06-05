@@ -24,9 +24,10 @@ class NotificationService:
             # أ. إشعار داخل التطبيق (In-app)
             new_notif = Notification(
                 title=f"⭐ قانون جديد في قسم {category.name}",
-                content=f"🚨 تم إضافة قانون جديد بعنوان:  {law_title}",
+                message=f"🚨 تم إضافة قانون جديد بعنوان:  {law_title}",
                 category_id=category_id,
                 is_broadcast=False,
+                recipient_id=user.id,
                 target_user_id=user.id
             )
             db.add(new_notif)
@@ -57,7 +58,7 @@ class NotificationService:
         """إرسال إشعار عام من الآدمن لجميع المستخدمين (In-app فقط)"""
         notification = Notification(
             title=title,
-            content=content,
+            message=content,
             is_broadcast=True
         )
         db.add(notification)

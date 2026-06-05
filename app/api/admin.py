@@ -8,7 +8,7 @@ from app.services.notification_service import NotificationService
 from app.schemas.admin import (
     AdminDashboardStats, AuditLogResponse, 
     SystemConfigResponse, SystemConfigUpdate,
-    AdminNotificationCreate
+    AdminNotificationCreate, NotificationResponse
 )
 from app.schemas.user import UserResponse
 from app.schemas.legal import LegalContent as LegalContentSchema, LegalContentCreate
@@ -167,18 +167,41 @@ def delete_user(
 
 # --- الإشعارات (Notifications) ---
 
+@router.get("/notifications", response_model=List[NotificationResponse])
+def get_all_notifications(
+    db: Session = Depends(get_db),
+    limit: int = 100,
+    offset: int = 0
+):
+    """جلب كافة الإشعارات المرسلة من قبل الآدمن"""
+    return db.query(NotificationModel).order_by(NotificationModel.created_at.desc()).limit(limit).offset(offset).all()
+
+@router.delete("/notifications/{notif_id}")
+def delete_notification(
+    notif_id: int,
+    db: Session = Depends(get_db)
+):
+    """حذف إشعار مرسل"""
+    notif = db.query(NotificationModel).filter(NotificationModel.id == notif_id).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    db.delete(notif)
+    db.commit()
+    return {"message": "Notification deleted successfully"}
+
 @router.post("/notifications")
 async def send_notification(
     notif_in: AdminNotificationCreate,
     db: Session = Depends(get_db),
     current_admin: User = Depends(check_admin)
 ):
-    """إرسال إشعار لمستخدم أو للجميع"""
-    if notif_in.target_user_id:
-        # إشعار خاص
-        AdminService.send_notification(
-            db, current_admin.id, notif_in.title, notif_in.content, notif_in.target_user_id
-        )
+    """إرسال إشعار لمستخدم أو مجموعة أو للجميع"""
+    if notif_in.target_user_ids and len(notif_in.target_user_ids) > 0:
+        # إرسال لمجموعة مستخدمين
+        for user_id in notif_in.target_user_ids:
+            AdminService.send_notification(
+                db, current_admin.id, notif_in.title, notif_in.content, user_id
+            )
     else:
         # إشعار عام (Broadcast)
         await NotificationService.send_broadcast_notification(db, notif_in.title, notif_in.content)

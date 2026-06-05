@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from pydantic import BaseModel, field_validator
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 # إحصائيات لوحة التحكم
@@ -8,6 +8,7 @@ class AdminDashboardStats(BaseModel):
     total_countries: int
     total_comparisons: int
     total_users: int
+    total_categories: int
 
 # سجل التعديلات (Audit Logs)
 class AuditLogResponse(BaseModel):
@@ -19,6 +20,24 @@ class AuditLogResponse(BaseModel):
     old_values: Optional[dict]
     new_values: Optional[dict]
     created_at: datetime
+    admin_id: Optional[int] = None
+    admin_name: Optional[str] = None
+
+    @field_validator('admin_id', mode='before')
+    @classmethod
+    def get_admin_id(cls, v: Any, info: Any) -> Any:
+        # In from_attributes mode, 'v' is the SQLAlchemy model instance
+        if hasattr(v, 'user_id'):
+            return v.user_id
+        return v
+
+    @field_validator('admin_name', mode='before')
+    @classmethod
+    def get_admin_name(cls, v: Any, info: Any) -> Any:
+        # v is the AuditLog instance
+        if hasattr(v, 'user') and v.user:
+            return v.user.full_name or v.user.email
+        return "Unknown"
 
     class Config:
         from_attributes = True
@@ -45,4 +64,15 @@ class SystemConfigResponse(SystemConfigBase):
 class AdminNotificationCreate(BaseModel):
     title: str
     content: str
+    target_user_ids: Optional[List[int]] = None
+
+class NotificationResponse(BaseModel):
+    id: int
+    title: str
+    message: str
     target_user_id: Optional[int] = None
+    is_broadcast: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

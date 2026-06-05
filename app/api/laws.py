@@ -41,30 +41,51 @@ def get_available_countries(db: Session = Depends(get_db)):
 @router.get("/by-category/{category_id}", response_model=List[dict])
 async def get_laws_by_category(
     category_id: int,
-    lang: Optional[str] = None,
+    country: Optional[str] = None,
+    lang: str = "ar",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # Use provided country or current user's country
+    target_country = country or current_user.country
+    
     query = text(
         """
         SELECT 
             cl.id as id,
             lc.title as title,
             lc.simplified_text as description,
-            lc.article_number
+            lc.article_number,
+            fl.country as foreign_country,
+            fl.title as foreign_title
         FROM comparative_laws cl
         JOIN legal_contents lc ON cl.saudi_law_id = lc.id
         JOIN legal_contents fl ON cl.foreign_law_id = fl.id
         WHERE lc.category_id = :cat_id 
-        AND fl.country = :country
-        """
+        """ + ("AND fl.country = :country" if target_country else "")
     )
 
+    params = {"cat_id": category_id}
+    if target_country:
+        params["country"] = target_country
+
     try:
-        result = db.execute(query, {"cat_id": category_id, "country": current_user.country}).fetchall()
-        laws = [dict(row._mapping) for row in result]
+        result = db.execute(query, params).fetchall()
+        laws = []
+        for row in result:
+            row_dict = dict(row._mapping)
+            # المواءمة مع ما يتوقعه الفرونت إند (Comparison interface)
+            laws.append({
+                "id": row_dict["id"],
+                "title": row_dict["title"],
+                "simplified_description": row_dict["description"],
+                "foreign_law": {
+                    "title": row_dict["foreign_title"],
+                    "country": row_dict["foreign_country"]
+                }
+            })
     except SQLAlchemyError:
-        return get_demo_comparisons_by_category(category_id, getattr(current_user, "country", None))
+        return get_demo_comparisons_by_category(category_id, target_country)
 
     if (current_user.language == "en" or lang == "en") and lang != "ar":
         laws = await translation_service.translate_comparison_list(laws)
@@ -106,7 +127,11 @@ def get_my_notifications(
     try:
         notifications = (
             db.query(Notification)
-            .filter((Notification.recipient_id == current_user.id) | (Notification.is_broadcast == True))
+            .filter(
+                (Notification.recipient_id == current_user.id) | 
+                (Notification.target_user_id == current_user.id) | 
+                (Notification.is_broadcast == True)
+            )
             .order_by(Notification.created_at.desc())
             .all()
         )

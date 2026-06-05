@@ -42,6 +42,7 @@ class UserUpdate(BaseModel):
 # ما يعود للواجهة (Response)
 class UserResponse(UserBase):
     id: int
+    avatar: Optional[str] = None
     is_active: bool
     is_verified: bool
     is_admin: bool
@@ -55,6 +56,7 @@ class CurrentUserResponse(BaseModel):
     id: int
     email: EmailStr
     full_name: str
+    avatar: Optional[str] = None
     country: str
     language: Optional[str]
     is_admin: bool
