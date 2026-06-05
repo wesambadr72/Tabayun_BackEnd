@@ -187,6 +187,22 @@ class AdminService:
         )
         return True
 
+    @staticmethod
+    def bulk_delete_laws(db: Session, admin_id: int, law_ids: List[int]) -> int:
+        """حذف مجموعة من القوانين دفعة واحدة"""
+        laws = db.query(LegalContent).filter(LegalContent.id.in_(law_ids)).all()
+        deleted_count = 0
+        for law in laws:
+            old_values = {column.name: getattr(law, column.name) for column in law.__table__.columns}
+            db.delete(law)
+            AdminService.log_action(
+                db, admin_id, "DELETE_LAW", "legal_contents", 
+                law.id, old_values, None
+            )
+            deleted_count += 1
+        db.commit()
+        return deleted_count
+
     # --- جلب البيانات للقوائم (Listing Methods) ---
 
     @staticmethod
@@ -240,6 +256,22 @@ class AdminService:
             user_id, old_values, None
         )
         return True
+
+    @staticmethod
+    def bulk_delete_users(db: Session, admin_id: int, user_ids: List[int]) -> int:
+        """حذف مجموعة من المستخدمين دفعة واحدة"""
+        users = db.query(User).filter(User.id.in_(user_ids)).all()
+        deleted_count = 0
+        for user in users:
+            old_values = {"email": user.email, "full_name": user.full_name, "role": user.role}
+            db.delete(user)
+            AdminService.log_action(
+                db, admin_id, "DELETE_USER", "users", 
+                user.id, old_values, None
+            )
+            deleted_count += 1
+        db.commit()
+        return deleted_count
 
     @staticmethod
     def update_user_role(db: Session, admin_id: int, user_id: int, new_role: str) -> Optional[User]:

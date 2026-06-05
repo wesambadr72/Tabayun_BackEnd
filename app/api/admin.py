@@ -135,6 +135,16 @@ def delete_law(
         raise HTTPException(status_code=404, detail="Law not found")
     return {"message": "Law deleted successfully"}
 
+@router.post("/laws/bulk-delete")
+def bulk_delete_laws(
+    law_ids: List[int],
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(check_admin)
+):
+    """حذف مجموعة قوانين"""
+    count = AdminService.bulk_delete_laws(db, current_admin.id, law_ids)
+    return {"message": f"Successfully deleted {count} laws"}
+
 # --- إدارة المستخدمين (User Management) ---
 
 @router.put("/users/{user_id}/role", response_model=UserResponse)
@@ -164,6 +174,16 @@ def delete_user(
     if not success:
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "User deleted successfully"}
+
+@router.post("/users/bulk-delete")
+def bulk_delete_users(
+    user_ids: List[int],
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(check_admin)
+):
+    """حذف مجموعة مستخدمين"""
+    count = AdminService.bulk_delete_users(db, current_admin.id, user_ids)
+    return {"message": f"Successfully deleted {count} users"}
 
 # --- الإشعارات (Notifications) ---
 
