@@ -15,6 +15,7 @@ from app.services.demo_fallback import (
     get_priority_comparisons as get_demo_priority_comparisons,
 )
 from app.services.translation_service import translation_service
+from app.utils.helpers import get_target_language_code
 
 router = APIRouter()
 
@@ -48,8 +49,9 @@ async def get_priority_comparisons(
     except SQLAlchemyError:
         return get_demo_priority_comparisons()
 
-    if (current_user.language == "en" or lang == "en") and lang != "ar":
-        laws = await translation_service.translate_comparison_list(laws)
+    lang_code = get_target_language_code(lang, current_user.language)
+    if lang_code != "ar":
+        laws = await translation_service.translate_comparison_list(laws, target_lang=lang_code)
 
     return laws
 
@@ -160,7 +162,8 @@ async def get_comparison_detail(
         if not data:
             raise HTTPException(status_code=404, detail="Comparison not found")
 
-    if (current_user.language == "en" or lang == "en") and lang != "ar":
-        data = await translation_service.translate_comparison_detail(data)
+    lang_code = get_target_language_code(lang, current_user.language)
+    if lang_code != "ar":
+        data = await translation_service.translate_comparison_detail(data, target_lang=lang_code)
 
     return data

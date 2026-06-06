@@ -22,3 +22,16 @@ def clean_and_parse_json(text: str) -> dict:
     except Exception as e:
         print(f"Error parsing JSON: {e} | Raw text: {text[:100]}...")
         return None
+
+def get_target_language_code(lang: str = None, user_lang: str = "ar") -> str:
+    """
+    Normalizes a language name or code to an ISO 639-1 code.
+    Defaults to 'ar' if the language is Arabic.
+    """
+    target = lang or user_lang or "ar"
+    target = target.lower().strip()
+    
+    # If it's already a 2-letter code, return it
+    if len(target) == 2:
+        return target
+        
