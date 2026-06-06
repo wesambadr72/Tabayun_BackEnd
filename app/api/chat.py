@@ -5,7 +5,7 @@ from app.services.ai_processor.rag_chatbot import RAGChatbot
 from app.schemas.chat import ChatMessage, SimpleChatResponse
 from app.core.security import get_current_user
 from app.db.models import User
-from app.utils.helpers import get_target_language_code
+from app.utils.helpers import get_target_language_code, get_language_code
 
 router = APIRouter()
 
