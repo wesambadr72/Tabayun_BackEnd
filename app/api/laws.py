@@ -173,7 +173,8 @@ def mark_notification_as_read(
 
 # الحصول على قائمة المقارنات المهمة للسعودية
 @router.get("/saudi-priority", response_model=List[dict])
-def get_saudi_priority_laws(
+async def get_saudi_priority_laws(
+    lang: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -186,6 +187,13 @@ def get_saudi_priority_laws(
     )
     try:
         result = db.execute(query).fetchall()
-        return [dict(row._mapping) for row in result]
+        laws = [dict(row._mapping) for row in result]
     except SQLAlchemyError:
-        return get_demo_priority_comparisons()
+        laws = get_demo_priority_comparisons()
+
+    # الترجمة حسب لغة المستخدم أو اللغة المطلوبة
+    lang_code = get_target_language_code(lang, current_user.language)
+    if lang_code != "ar":
+        laws = await translation_service.translate_comparison_list(laws, target_lang=lang_code)
+
+    return laws

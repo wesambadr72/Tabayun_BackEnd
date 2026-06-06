@@ -94,7 +94,8 @@ def add_bookmark(
 
 # الحصول على قائمة المفضلة للمستخدم
 @router.get("/bookmarks", response_model=List[dict])
-def get_my_bookmarks(
+async def get_my_bookmarks(
+    lang: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -120,6 +121,19 @@ def get_my_bookmarks(
                     "comparison": comp,
                 }
             )
+        
+        # ترجمة المقارنات داخل المفضلة
+        lang_code = get_target_language_code(lang, current_user.language)
+        if lang_code != "ar" and result:
+            comparisons_to_translate = [r["comparison"] for r in result if r["comparison"]]
+            if comparisons_to_translate:
+                translated_comps = await translation_service.translate_comparison_list(comparisons_to_translate, target_lang=lang_code)
+                comp_idx = 0
+                for r in result:
+                    if r["comparison"]:
+                        r["comparison"] = translated_comps[comp_idx]
+                        comp_idx += 1
+                        
         return result
     except SQLAlchemyError:
         return []

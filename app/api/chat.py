@@ -5,6 +5,7 @@ from app.services.ai_processor.rag_chatbot import RAGChatbot
 from app.schemas.chat import ChatMessage, SimpleChatResponse
 from app.core.security import get_current_user
 from app.db.models import User
+from app.utils.helpers import get_target_language_code
 
 router = APIRouter()
 
@@ -24,8 +25,8 @@ async def chat_query(
     # إلغاء فلتر الدولة للسماح للذكاء الاصطناعي بالوصول لكافة القوانين (السعودية والأجنبية) للإجابة بدقة
     country_filter = None
     
-    # تحديد اللغة (افتراضياً العربية)
-    language = "ar"
+    # تحديد اللغة بناءً على لغة المستخدم أو المعطاة في الرسالة (إذا كانت مدعومة مستقبلاً)
+    language = get_target_language_code(user_lang=current_user.language)
     
     result = await chatbot.ask(
         question=chat_in.message,
