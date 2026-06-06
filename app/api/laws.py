@@ -16,7 +16,7 @@ from app.services.demo_fallback import (
     get_priority_comparisons as get_demo_priority_comparisons,
 )
 from app.services.translation_service import translation_service
-from app.utils.helpers import get_target_language_code
+from app.utils.helpers import get_target_language_code, get_language_code
 
 router = APIRouter()
 
@@ -89,7 +89,8 @@ async def get_laws_by_category(
         return get_demo_comparisons_by_category(category_id, target_country)
 
     # الترجمة حسب لغة المستخدم أو اللغة المطلوبة
-    lang_code = get_target_language_code(lang, current_user.language)
+    full_lang = get_target_language_code(lang, current_user.language)
+    lang_code = get_language_code(full_lang)
     if lang_code != "ar":
         laws = await translation_service.translate_comparison_list(laws, target_lang=lang_code)
 
@@ -192,7 +193,8 @@ async def get_saudi_priority_laws(
         laws = get_demo_priority_comparisons()
 
     # الترجمة حسب لغة المستخدم أو اللغة المطلوبة
-    lang_code = get_target_language_code(lang, current_user.language)
+    full_lang = get_target_language_code(lang, current_user.language)
+    lang_code = get_language_code(full_lang)
     if lang_code != "ar":
         laws = await translation_service.translate_comparison_list(laws, target_lang=lang_code)
 

@@ -64,7 +64,7 @@ class TranslationService:
             logger.error(f"DeepTranslator Error: {str(e)}")
             return text
 
-    async def translate_comparison_list(self, items: List[dict]) -> List[dict]:
+    async def translate_comparison_list(self, items: List[dict], target_lang: str = "en") -> List[dict]:
         """
         ترجمة قائمة من القوانين/المقارنات (للعناوين والوصف).
         """
@@ -76,20 +76,25 @@ class TranslationService:
         texts_to_translate = []
         for item in translated_items:
             texts_to_translate.append(item.get("title", ""))
-            texts_to_translate.append(item.get("description", ""))
+            # Some queries use 'description', others use 'simplified_description'
+            desc = item.get("description") or item.get("simplified_description") or ""
+            texts_to_translate.append(desc)
 
-        translated = await self.translate_text(texts_to_translate)
+        translated = await self.translate_text(texts_to_translate, target_lang=target_lang)
         
         if isinstance(translated, list):
             idx = 0
             for item in translated_items:
                 item["title"] = translated[idx]
-                item["description"] = translated[idx+1]
+                if "description" in item:
+                    item["description"] = translated[idx+1]
+                elif "simplified_description" in item:
+                    item["simplified_description"] = translated[idx+1]
                 idx += 2
         
         return translated_items
 
-    async def translate_comparison_detail(self, detail: dict) -> dict:
+    async def translate_comparison_detail(self, detail: dict, target_lang: str = "en") -> dict:
         """
         ترجمة تفاصيل المقارنة الكاملة.
         """
@@ -104,7 +109,7 @@ class TranslationService:
             new_detail.get("summary", "")
         ]
 
-        translated = await self.translate_text(texts_to_translate)
+        translated = await self.translate_text(texts_to_translate, target_lang=target_lang)
         
         if isinstance(translated, list):
             new_detail["title"] = translated[0]

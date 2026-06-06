@@ -25,13 +25,34 @@ def clean_and_parse_json(text: str) -> dict:
 
 def get_target_language_code(lang: str = None, user_lang: str = "ar") -> str:
     """
-    Normalizes a language name or code to an ISO 639-1 code.
-    Defaults to 'ar' if the language is Arabic.
+    يتعامل مع مدخلات اللغة من الفرونت إند (مثلاً 'en' أو 'ar')
+    ويحولها إلى اسم اللغة الكامل (مثلاً 'English' أو 'Arabic') لاستخدامها في النظام.
     """
     target = lang or user_lang or "ar"
     target = target.lower().strip()
     
-    # If it's already a 2-letter code, return it
+    code_to_name = {
+        "ar": "Arabic",
+        "en": "English",
+        "de": "German"
+    }
+    
     if len(target) == 2:
-        return target
+        return code_to_name.get(target, "Arabic" if target == "ar" else "English")
+        
+    return target.capitalize()
+
+def get_language_code(lang_name: str) -> str:
+    """
+    يحول اسم اللغة الكامل إلى رمز ISO (حرفين) لاستخدامه في خدمات الترجمة.
+    """
+    if not lang_name:
+        return "ar"
+        
+    name_to_code = {
+        "arabic": "ar",
+        "english": "en",
+        "german": "de"
+    }
+    return name_to_code.get(lang_name.lower(), "en")
         

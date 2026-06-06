@@ -9,7 +9,7 @@ from app.core.security import get_current_user
 from app.services.vector_search import VectorSearchService
 from app.schemas.interaction import SearchHistory as SearchHistorySchema
 from app.services.translation_service import translation_service
-from app.utils.helpers import get_target_language_code
+from app.utils.helpers import get_target_language_code, get_language_code
 
 router = APIRouter()
 
@@ -78,7 +78,8 @@ async def search_laws(
     db.commit()
     
     # 3. الترجمة حسب لغة المستخدم أو اللغة المطلوبة
-    lang_code = get_target_language_code(lang, current_user.language)
+    full_lang = get_target_language_code(lang, current_user.language)
+    lang_code = get_language_code(full_lang)
     
     if lang_code != "ar":
         search_results = await translation_service.translate_comparison_list(search_results, target_lang=lang_code)

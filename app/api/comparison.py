@@ -15,7 +15,7 @@ from app.services.demo_fallback import (
     get_priority_comparisons as get_demo_priority_comparisons,
 )
 from app.services.translation_service import translation_service
-from app.utils.helpers import get_target_language_code
+from app.utils.helpers import get_target_language_code, get_language_code
 
 router = APIRouter()
 
@@ -50,6 +50,7 @@ async def get_priority_comparisons(
         return get_demo_priority_comparisons()
 
     lang_code = get_target_language_code(lang, current_user.language)
+
     if lang_code != "ar":
         laws = await translation_service.translate_comparison_list(laws, target_lang=lang_code)
 
@@ -123,7 +124,8 @@ async def get_my_bookmarks(
             )
         
         # ترجمة المقارنات داخل المفضلة
-        lang_code = get_target_language_code(lang, current_user.language)
+        full_lang = get_target_language_code(lang, current_user.language)
+        lang_code = get_language_code(full_lang)
         if lang_code != "ar" and result:
             comparisons_to_translate = [r["comparison"] for r in result if r["comparison"]]
             if comparisons_to_translate:
@@ -176,7 +178,8 @@ async def get_comparison_detail(
         if not data:
             raise HTTPException(status_code=404, detail="Comparison not found")
 
-    lang_code = get_target_language_code(lang, current_user.language)
+    full_lang = get_target_language_code(lang, current_user.language)
+    lang_code = get_language_code(full_lang)
     if lang_code != "ar":
         data = await translation_service.translate_comparison_detail(data, target_lang=lang_code)
 
