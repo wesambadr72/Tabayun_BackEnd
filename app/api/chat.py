@@ -26,12 +26,15 @@ async def chat_query(
     country_filter = None
     
     # تحديد اللغة بناءً على لغة المستخدم أو المعطاة في الرسالة (إذا كانت مدعومة مستقبلاً)
-    language = get_target_language_code(user_lang=current_user.language)
+    full_lang = get_target_language_code(user_lang=current_user.language)
+    lang_code = get_language_code(full_lang)
+
+
     
     result = await chatbot.ask(
         question=chat_in.message,
         country_filter=country_filter,
-        language=language
+        language=lang_code
     )
     
     if "error" in result:
