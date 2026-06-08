@@ -211,9 +211,11 @@ class AdminService:
         return db.query(LegalContent).filter(LegalContent.id == law_id).first()
 
     @staticmethod
-    def get_all_laws(db: Session, skip: int = 0, limit: int = 100, search: str = None) -> List[LegalContent]:
-        """جلب قائمة القوانين للآدمن مع البحث"""
+    def get_all_laws(db: Session, skip: int = 0, limit: int = 100, search: str = None, category_id: Optional[int] = None) -> List[LegalContent]:
+        """جلب قائمة القوانين للآدمن مع البحث والفلترة حسب القسم"""
         query = db.query(LegalContent)
+        if category_id:
+            query = query.filter(LegalContent.category_id == category_id)
         if search:
             query = query.filter(
                 (LegalContent.title.ilike(f"%{search}%")) | 

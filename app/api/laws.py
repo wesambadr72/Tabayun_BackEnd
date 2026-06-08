@@ -199,3 +199,13 @@ async def get_saudi_priority_laws(
         laws = await translation_service.translate_comparison_list(laws, target_lang=lang_code)
 
     return laws
+
+@router.get("/stats")
+async def get_laws_stats(
+    db: Session = Depends(get_db),
+):
+    try:
+        result = db.execute(text("SELECT COUNT(*) FROM legal_contents")).fetchone()
+        return {"total_laws": result[0]}
+    except SQLAlchemyError:
+        return {"total_laws": 0}

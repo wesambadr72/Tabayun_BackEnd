@@ -40,10 +40,11 @@ def list_laws(
     db: Session = Depends(get_db),
     skip: int = 0,
     limit: int = 100,
-    search: Optional[str] = None
+    search: Optional[str] = None,
+    category_id: Optional[int] = None
 ):
-    """جلب قائمة القوانين مع البحث"""
-    return AdminService.get_all_laws(db, skip, limit, search)
+    """جلب قائمة القوانين مع البحث والفلترة حسب القسم"""
+    return AdminService.get_all_laws(db, skip, limit, search, category_id)
 
 @router.get("/users", response_model=List[UserResponse])
 def list_users(
