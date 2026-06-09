@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     GEMINI_MODEL_NAME: str = ""
     EMBEDDING_MODEL: str = ""
     OPENAI_API_KEY: str = ""
+    OPENAI_MODEL_NAME: str = "gpt-5.4-mini"
 
     
     RESEND_API_KEY: str = ""

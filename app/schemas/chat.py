@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 class ChatBase(BaseModel):
@@ -30,7 +30,16 @@ class BotManagement(BaseModel):
 # Legacy support or simplified messages
 class ChatMessage(BaseModel):
     message: str
+    language: str | None = None
+
+class ChatSource(BaseModel):
+    id: int
+    country: str | None = None
+    title: str
+    url: str | None = None
+    similarity: float | None = None
 
 class SimpleChatResponse(BaseModel):
     response: str
     source: str | None = None
+    sources: list[ChatSource] = Field(default_factory=list)

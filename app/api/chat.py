@@ -26,7 +26,7 @@ async def chat_query(
     country_filter = None
     
     # تحديد اللغة بناءً على لغة المستخدم أو المعطاة في الرسالة (إذا كانت مدعومة مستقبلاً)
-    full_lang = get_target_language_code(user_lang=current_user.language)
+    full_lang = get_target_language_code(lang=chat_in.language, user_lang=current_user.language)
     lang_code = get_language_code(full_lang)
 
 
@@ -34,7 +34,9 @@ async def chat_query(
     result = await chatbot.ask(
         question=chat_in.message,
         country_filter=country_filter,
-        language=lang_code
+        language=lang_code,
+        user_name=current_user.full_name,
+        user_country=current_user.country,
     )
     
     if "error" in result:
@@ -42,5 +44,6 @@ async def chat_query(
         
     return {
         "response": result.get("answer", "Sorry, I couldn't find a direct answer right now."),
-        "source": result.get("source_article", "Legal Reference Article")
+        "source": result.get("source_article"),
+        "sources": result.get("sources", []),
     }
