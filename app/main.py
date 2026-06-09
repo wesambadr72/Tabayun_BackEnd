@@ -11,7 +11,13 @@ app = FastAPI(
 # Set all CORS enabled origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://tabayun-frontend-prototype.vercel.app",
+        "https://tabayunbackend-production.up.railway.app",
+    ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
