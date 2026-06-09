@@ -1,3 +1,5 @@
+import re
+
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -7,6 +9,31 @@ from app.services.source_fetcher import SourceFetcher
 from app.services.vector_search import VectorSearchService
 
 MIN_CHAT_SIMILARITY = 0.4
+
+LEGAL_INTENT_TERMS = (
+    "قانون", "نظام", "نظامي", "نظاميه", "قانوني", "قانونيه", "مخالفه",
+    "مخالفة", "مخالفات", "عقوبه", "عقوبة", "غرامه", "غرامة", "جزاء",
+    "مسموح", "ممنوع", "محظور", "تصريح", "رخصه", "رخصة", "قياده",
+    "قيادة", "مرور", "ساهر", "تصوير", "لباس", "احتشام", "تاشيره",
+    "تأشيرة", "فيزا", "اقامه", "إقامة", "الاقامة", "الإقامة", "عمل",
+    "عامل", "عمال", "محكمه", "محكمة", "شرطه", "شرطة", "سجن", "جريمه",
+    "جريمة", "توقيف", "بلاغ", "السعوديه", "السعودية", "بريطانيا",
+    "المانيا", "ألمانيا", "traffic", "visa", "residency", "labor", "law",
+    "legal", "regulation", "regulations", "fine", "penalty", "violation",
+    "allowed", "forbidden", "permit", "license", "driving", "filming",
+    "dress", "court", "police", "public decency", "saudi", "ksa",
+)
+
+GENERAL_CHAT_TERMS = (
+    "السلام", "سلام", "هلا", "اهلا", "أهلا", "مرحبا", "صباح الخير",
+    "مساء الخير", "كيفك", "كيف حالك", "كيف الحال", "كيف الامور",
+    "كيف الأمور", "كيف", "شكرا", "شكر", "يعطيك العافيه", "يعطيك العافية",
+    "مين انت", "من انت", "من أنت", "وش انت", "ايش انت", "ما هو تباين",
+    "وش تباين", "ايش تباين", "تباين", "وش تقدر", "ايش تقدر",
+    "ماذا تستطيع", "ساعدني", "مساعده", "مساعدة", "hi", "hello", "hey",
+    "salam", "thanks", "thank you", "who are you", "what are you",
+    "what can you do", "help",
+)
 
 COUNTRY_ALIASES = {
     "sa": {"sa", "ksa", "saudi", "saudi arabia", "السعودية", "المملكة العربية السعودية"},
@@ -34,6 +61,12 @@ class RAGPipeline:
         user_name: str | None = None,
         user_country: str | None = None,
     ) -> dict:
+        intent = await self._resolve_question_intent(question, language)
+        if intent == "general":
+            return self._general_chat_response(question, language, user_name)
+        if intent == "off_topic":
+            return self._off_topic_response(language)
+
         similar_laws = self.vector_search.search_similar_laws(
             question,
             top_k=10,
@@ -185,3 +218,124 @@ class RAGPipeline:
             }
             for r in results[:3]
         ]
+
+    async def _resolve_question_intent(self, question: str, language: str) -> str:
+        ai_intent = await self.openai.classify_chat_intent(question, language=language)
+        if ai_intent in {"legal", "general", "off_topic"}:
+            return ai_intent
+        return self._classify_question_intent(question)
+
+    def _classify_question_intent(self, question: str) -> str:
+        text = self._normalize_question(question)
+        if not text:
+            return "general"
+
+        if any(term in text for term in LEGAL_INTENT_TERMS):
+            return "legal"
+
+        if self._is_general_chat(text):
+            return "general"
+
+        return "off_topic"
+
+    def _normalize_question(self, question: str) -> str:
+        text = (question or "").strip().lower()
+        replacements = {
+            "أ": "ا",
+            "إ": "ا",
+            "آ": "ا",
+            "ى": "ي",
+            "ؤ": "و",
+            "ئ": "ي",
+            "ة": "ه",
+        }
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        text = re.sub(r"[^\w\s\u0600-\u06FF]", " ", text)
+        return re.sub(r"\s+", " ", text).strip()
+
+    def _is_general_chat(self, text: str) -> bool:
+        if text in GENERAL_CHAT_TERMS:
+            return True
+
+        social_terms = (
+            "السلام", "سلام", "هلا", "اهلا", "مرحبا", "صباح الخير",
+            "مساء الخير", "كيفك", "كيف حالك", "كيف الحال", "كيف الامور",
+            "شكرا", "شكر", "يعطيك العافيه", "hi", "hello", "hey", "salam",
+            "thanks", "thank you",
+        )
+        product_terms = (
+            "مين انت", "من انت", "من أنت", "وش انت", "ايش انت", "ما هو تباين",
+            "وش تباين", "ايش تباين", "وش تقدر", "ايش تقدر", "ماذا تستطيع",
+            "who are you", "what are you", "what can you do", "tabayun",
+        )
+
+        if len(text.split()) <= 3 and any(term in text for term in social_terms):
+            return True
+        return any(term in text for term in product_terms)
+
+    def _general_chat_response(
+        self,
+        question: str,
+        language: str,
+        user_name: str | None,
+    ) -> dict:
+        text = self._normalize_question(question)
+        display_name = self._display_name(user_name, language)
+
+        if language == "ar":
+            if any(term in text for term in ("شكرا", "شكر", "يعطيك العافيه")):
+                answer = f"العفو يا {display_name}. أنا موجود إذا احتجت تفهم موقف قانوني أو نظامي بطريقة واضحة."
+            elif any(term in text for term in ("مين انت", "من انت", "وش انت", "ايش انت", "تباين", "وش تقدر", "ايش تقدر", "ماذا تستطيع", "ساعدني")):
+                answer = (
+                    "أنا مساعد تباين. أساعدك تفهم الأنظمة والمواقف القانونية المرتبطة "
+                    "بالسياحة والحياة اليومية في السعودية بأسلوب واضح وودّي. اسألني عن "
+                    "مخالفة، تصريح، قيادة، تصوير، لباس، إقامة، أو أي موقف قانوني مشابه."
+                )
+            else:
+                answer = (
+                    f"يا هلا يا {display_name}. معك تباين، جاهز أساعدك بأسلوب واضح وودّي. "
+                    "اكتب لي الموقف أو السؤال القانوني، وبأعطيك خلاصة مفيدة من المصادر المتاحة."
+                )
+        else:
+            if any(term in text for term in ("thanks", "thank you")):
+                answer = f"You are welcome, {display_name}. Send me any legal situation when you need a clear explanation."
+            elif any(term in text for term in ("who are you", "what are you", "what can you do", "help", "tabayun")):
+                answer = (
+                    "I am Tabayun's assistant. I help explain legal and everyday regulatory "
+                    "situations in Saudi Arabia in a clear, friendly way. Ask about violations, "
+                    "permits, driving, filming, dress rules, residency, or similar legal topics."
+                )
+            else:
+                answer = (
+                    f"Hi {display_name}. I am Tabayun's assistant, ready to help in a clear and friendly way. "
+                    "Send me the legal situation or question and I will summarize what the available sources say."
+                )
+
+        return {
+            "answer": answer,
+            "sources": [],
+            "context_used": 0,
+            "intent": "general",
+        }
+
+    def _off_topic_response(self, language: str) -> dict:
+        if language == "ar":
+            answer = (
+                "هذا خارج نطاق تباين. أقدر أساعدك في الأسئلة القانونية والأنظمة المرتبطة "
+                "بالسياحة أو المواقف اليومية في السعودية، مثل المخالفات، التصاريح، القيادة، "
+                "التصوير، اللباس، الإقامة، أو قواعد الأماكن العامة."
+            )
+        else:
+            answer = (
+                "That is outside Tabayun's scope. I can help with legal and regulatory questions "
+                "related to tourism or everyday situations in Saudi Arabia, such as violations, "
+                "permits, driving, filming, dress rules, residency, or public-place rules."
+            )
+
+        return {
+            "answer": answer,
+            "sources": [],
+            "context_used": 0,
+            "intent": "off_topic",
+        }

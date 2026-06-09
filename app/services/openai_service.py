@@ -35,6 +35,42 @@ class OpenAIService:
             print(f"Error in OpenAIService.generate_answer: {e}")
             return None
 
+    async def classify_chat_intent(self, question: str, language: str = "ar") -> str | None:
+        """Classify a chat message before deciding whether to run RAG."""
+        is_arabic = language.lower() in ["ar", "arabic"]
+        target_lang = "Arabic" if is_arabic else "English"
+        prompt = f"""
+You are the intent router for Tabayun, a friendly legal guidance assistant.
+
+Classify the user's message into exactly one intent:
+
+1. "legal"
+- The user asks about laws, regulations, rights, duties, penalties, violations, permits, courts, police, immigration, residency, labor, driving, filming, dress rules, public decency, food regulations, tourism rules, or anything that may need legal/regulatory lookup.
+- If the message is ambiguous but could reasonably be legal or regulatory, choose "legal" so the database can be searched.
+
+2. "general"
+- Greetings, thanks, simple social messages, or questions about Tabayun and what the assistant can do.
+- Do not classify a practical external task as general just because it starts with "how", "help", or "can you".
+
+3. "off_topic"
+- Requests unrelated to Tabayun's legal/regulatory scope, such as recipes, poems, entertainment, coding help, general homework, personal opinions, or unrelated facts.
+
+User language: {target_lang}
+User message:
+{question}
+
+Return only this JSON object:
+{{
+  "intent": "legal"
+}}
+""".strip()
+        raw_response = await self.generate_answer(prompt)
+        parsed = clean_and_parse_json(raw_response)
+        intent = (parsed or {}).get("intent")
+        if intent in {"legal", "general", "off_topic"}:
+            return intent
+        return None
+
     async def generate_with_context(
         self,
         question: str,
