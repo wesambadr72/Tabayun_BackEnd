@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Tabayun Backend"
@@ -12,15 +12,20 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     ACCESS_TOKEN_EXPIRE_HOURS: int = 24
     
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL_NAME: str = ""
     EMBEDDING_MODEL: str = ""
     OPENAI_API_KEY: str = ""
-    OPENAI_MODEL_NAME: str = "o4-mini"
+    OPENAI_MODEL_NAME: str = "gpt-5.4-mini"
 
     
     RESEND_API_KEY: str = ""
     LOG_LEVEL: str = "INFO"
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
 
 settings = Settings()

@@ -58,13 +58,15 @@ class RAGPipeline:
             }
 
         context = await self._build_context(similar_laws, user_country=user_country)
-        answer = await self.openai.generate_with_context(
+        result_dict = await self.openai.generate_with_context(
             question,
             context,
             language=language,
             user_name=user_name,
             user_country=user_country,
         )
+        
+        answer = result_dict.get("answer") if result_dict else None
         sources = self._extract_sources(similar_laws)
 
         return {
@@ -75,6 +77,8 @@ class RAGPipeline:
             ),
             "sources": sources,
             "context_used": len(similar_laws),
+            "is_legal": result_dict.get("is_legal", True) if result_dict else True,
+            "has_enough_info": result_dict.get("has_enough_info", True) if result_dict else True,
         }
 
     async def _build_context(self, results: list, user_country: str | None = None) -> str:
@@ -164,7 +168,8 @@ class RAGPipeline:
         return value
 
     def _display_name(self, user_name: str | None, language: str) -> str:
-        fallback = "صديقي" if language == "ar" else "friend"
+        is_arabic = language.lower() in ["ar", "arabic"]
+        fallback = "صديقي" if is_arabic else "friend"
         if not user_name:
             return fallback
         return user_name.strip().split()[0] or fallback
