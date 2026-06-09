@@ -22,7 +22,7 @@ class RAGPipeline:
 
         similar_laws = self.vector_search.search_similar_laws(
             question,
-            top_k=7,
+            top_k=10,
             country_filter=country_filter,
             section_filter=section_filter,
         )

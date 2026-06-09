@@ -30,6 +30,16 @@ async def search_laws(
     # 1. القيام بالبحث المعنوي
     results = vector_search.search_similar_laws(query_text=q, top_k=10)
     
+    # تحديد عتبة التشابه (Similarity Threshold) لضمان جودة النتائج
+    # إذا كانت النتائج بعيدة جداً عن نص البحث، نعتبرها غير موجودة
+    results = [r for r in results if r.get('similarity', 0) > 0.4]
+
+    if not results:
+        raise HTTPException(
+            status_code=404, 
+            detail="لم يتم العثور على نتيجة مقاربة"
+        )
+    
     law_ids = [item["id"] for item in results]
     
     # Batch fetch all relevant comparisons in a single query (Fixes N+1 issue)
@@ -67,6 +77,13 @@ async def search_laws(
                     "score": item.get('similarity', 0)
                 })
     
+    # تحقق إضافي بعد فلترة المقارنات ذات الصلة ببلد المستخدم
+    if not search_results:
+        raise HTTPException(
+            status_code=404, 
+            detail="لم يتم العثور على نتيجة مقاربة"
+        )
+
     # 2. تسجيل عملية البحث في التاريخ (History)
     new_search = SearchHistory(
         user_id=current_user.id,

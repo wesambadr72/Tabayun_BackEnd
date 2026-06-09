@@ -154,6 +154,8 @@ async def get_comparison_detail(
         if not comparison:
             raise HTTPException(status_code=404, detail="Comparison not found")
 
+        saudi_article_number = comparison.saudi_content.article_number.replace("المادة ", "")
+
         data = {
             "id": comparison.id,
             "title": comparison.saudi_content.title,
@@ -161,7 +163,7 @@ async def get_comparison_detail(
                 "title": comparison.saudi_content.title,
                 "text": comparison.saudi_content.simplified_text,
                 "source_url": comparison.saudi_content.source_url,
-                "article_number": comparison.saudi_content.article_number,
+                "article_number": saudi_article_number,
             },
             "foreign_law": {
                 "country": comparison.foreign_content.country,

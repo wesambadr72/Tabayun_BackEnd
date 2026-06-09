@@ -143,3 +143,36 @@ class LawComparator(GeminiService):
         except Exception as e:
             db.rollback()
             raise e
+
+if __name__ == "__main__":
+    import sys
+    from app.db.database import SessionLocal
+    
+    async def run_manual_comparison():
+        if len(sys.argv) < 3:
+            print("\n[!] Usage: python -m app.services.ai_processor.comparator_gemini <saudi_id> <foreign_id> [language]")
+            print("[!] Example: python -m app.services.ai_processor.comparator_gemini 1 1494 ar\n")
+            return
+
+        try:
+            saudi_id = int(sys.argv[1])
+            foreign_id = int(sys.argv[2])
+            lang = sys.argv[3] if len(sys.argv) > 3 else "ar"
+            
+            db = SessionLocal()
+            try:
+                comparator = LawComparator()
+                print(f"\n[*] Starting comparison between Saudi ID {saudi_id} and Foreign ID {foreign_id}...")
+                result = await comparator.compare_by_ids(saudi_id, foreign_id, db, lang)
+                
+                if "error" in result:
+                    print(f"[-] Error: {result['error']}")
+                else:
+                    print("[+] Success!")
+                    print(f"Summary: {result['comparison_text']}")
+            finally:
+                db.close()
+        except Exception as e:
+            print(f"[-] Critical Error: {e}")
+
+    asyncio.run(run_manual_comparison())
