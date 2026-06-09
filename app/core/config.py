@@ -12,11 +12,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     ACCESS_TOKEN_EXPIRE_HOURS: int = 24
     
-    GEMINI_API_KEY: str = ""
-    GEMINI_MODEL_NAME: str = ""
     EMBEDDING_MODEL: str = ""
     OPENAI_API_KEY: str = ""
-    OPENAI_MODEL_NAME: str = "gpt-5.4-mini"
+    OPENAI_MODEL_NAME: str = "o4-mini"
 
     
     RESEND_API_KEY: str = ""

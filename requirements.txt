@@ -16,7 +16,6 @@ pytest
 httpx
 pgvector
 sentence-transformers
-google-genai
 openai
 deep-translator
 resend

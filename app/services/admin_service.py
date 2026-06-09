@@ -337,12 +337,6 @@ class AdminService:
         """إدخال الإعدادات الافتراضية للنظام حالياً"""
         default_configs = [
             {
-                "key": "gemini_model_name",
-                "value": "gemini-3.1-flash-lite-preview",
-                "example_value": "gemini-3.1-flash-preview",
-                "description": "اسم موديل الذكاء الاصطناعي المستخدم في المعالجة"
-            },
-            {
                 "key": "simplification_prompt",
                 "value": """Simplify this legal article for a regular person.
             Provide the output in {target_lang}.
